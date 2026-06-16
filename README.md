@@ -14,7 +14,8 @@ Sleek dark "black-tech" UI. Runs entirely on your machine.
   - **Forge from scratch** — type a mood, scene, or story; an LLM writes a full song with proper Suno section tags (`[Verse]`, `[Chorus]`, `[Bridge]`…).
   - **Co-write** — paste the few good lines you already wrote; the AI keeps them **verbatim** and builds the rest of the song around them, matching tone, rhyme, and meter. Tell it whether your lines are the chorus, a verse, the opening, etc.
 - **Target length** — ask for "2-3 min", "short 90s", "radio edit"; section count is chosen to fit.
-- **Pro songwriting controls** — set **tempo**, **musical key**, **vocal** (range/gender/duet), **song structure**, **stylistic reference** ("in the style of…"), and **lyrical subject**. All optional — leave blank for AI's choice.
+- **Maps to Suno Advanced mode** — output is split into the exact fields Suno's Advanced create panel expects: **Styles**, **Exclude styles**, **Vocal Gender**, **Weirdness %**, **Style Influence %**, **Lyrics**, **Title**. Copy each straight across. The AI picks sensible slider values per genre, or override them yourself.
+- **Pro songwriting controls** — set **instruments**, **tempo**, **musical key**, **vocal** (range/gender/duet), **song structure**, **target length**, **stylistic reference** ("in the style of…"), and **lyrical subject**. All optional — leave blank for AI's choice.
 - **Section rework** — not happy with the chorus? Rewrite just that section with a note ("more hopeful, add a metaphor") while the rest stays intact.
 - **14 base genres** — Midnight R&B, Groove Pop, Rainy Jazz, Synthwave, City Pop, Dream Pop, Trap Soul, Bossa Nova, Lo-fi, Piano Ballad, Indie Rock, Chill EDM, Epic Cinematic, Soft Acoustic.
 - **Playlist batch** — generate up to 20 distinct songs in one click.

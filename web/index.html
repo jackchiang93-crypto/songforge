@@ -84,6 +84,11 @@
   .cp{background:var(--bg2);color:var(--cyan);border:1px solid var(--line2);border-radius:6px;
     padding:3px 11px;cursor:pointer;font-size:11px;font-family:var(--mono)}
   .cp:hover{border-color:var(--cyan)}
+  .meters{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 2px}
+  .meter{font-family:var(--mono);font-size:11px;color:var(--dim);background:var(--bg2);
+    border:1px solid var(--line2);border-radius:7px;padding:5px 11px}
+  .meter b{color:var(--cyan)}
+  .meter.dim{border-color:transparent;color:var(--dim2)}
   .rework{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
   .rework input{flex:1;min-width:160px;font-size:12px;padding:9px 11px}
   .rework select{width:auto;font-size:12px;padding:9px 11px}
@@ -153,9 +158,26 @@
         <div><label>Vocal</label><input id="vocal" placeholder="female alto / male tenor / duet"></div>
       </div>
       <div class="grid g2" style="margin-top:4px">
-        <div><label>Target length</label><input id="duration" placeholder="2-3 min / short 90s / radio edit"></div>
-        <div></div>
+        <div><label>Instruments to feature</label><input id="instruments" placeholder="nylon guitar, rhodes piano, alto sax, 808"></div>
+        <div><label>Exclude styles (Suno)</label><input id="exclude" placeholder="edm, autotune, aggressive drums"></div>
       </div>
+      <div class="grid g2" style="margin-top:4px">
+        <div><label>Target length</label><input id="duration" placeholder="2-3 min / short 90s / radio edit"></div>
+        <div><label>Vocal gender (Suno)</label>
+          <div class="chips" id="vgChips">
+            <div class="chip active" data-v="any" onclick="pickVG('any')">Any</div>
+            <div class="chip" data-v="female" onclick="pickVG('female')">Female</div>
+            <div class="chip" data-v="male" onclick="pickVG('male')">Male</div>
+          </div>
+        </div>
+      </div>
+      <div class="grid g2" style="margin-top:10px">
+        <div><label>Weirdness — <span id="weirdVal">auto</span></label>
+          <input id="weird" type="range" min="0" max="100" value="50" oninput="sliderOn('weird','weirdVal')" style="padding:0"></div>
+        <div><label>Style influence — <span id="inflVal">auto</span></label>
+          <input id="infl" type="range" min="0" max="100" value="50" oninput="sliderOn('infl','inflVal')" style="padding:0"></div>
+      </div>
+      <p class="hint" style="margin-top:6px;color:var(--dim2)">Sliders: drag to override, leave untouched = let AI pick the right value for the genre.</p>
       <div class="grid g2" style="margin-top:4px">
         <div><label>Song structure</label><input id="structure" placeholder="Verse-Chorus-Verse-Chorus-Bridge-Chorus"></div>
         <div><label>Lyrics language</label>
@@ -220,7 +242,8 @@ const GENRES = {
   epic:{label:'Epic Cinematic', style:'epic cinematic, orchestral, soaring choir, powerful strings, big percussion, heroic trailer music, 120 bpm'},
 };
 
-let ACTIVE='midnight_rnb', SONGS=[], MODE='scratch';
+let ACTIVE='midnight_rnb', SONGS=[], MODE='scratch', VG='any';
+let weirdSet=false, inflSet=false;
 
 function pickGenre(k){ACTIVE=k;
   document.querySelectorAll('#genres .chip').forEach(b=>b.classList.toggle('active',b.dataset.k===k));
@@ -231,6 +254,9 @@ function pickMode(m){MODE=m;
   document.getElementById('cowriteBox').style.display=m==='cowrite'?'block':'none';
   document.getElementById('genBtn').textContent=m==='cowrite'?'✎ Finish my song':'⚡ Forge a song';}
 function toggleAdv(){document.getElementById('adv').classList.toggle('open');document.getElementById('advT').classList.toggle('open');}
+function pickVG(v){VG=v;document.querySelectorAll('#vgChips .chip').forEach(b=>b.classList.toggle('active',b.dataset.v===v));}
+function sliderOn(id,lbl){const val=document.getElementById(id).value;document.getElementById(lbl).textContent=val+'%';
+  if(id==='weird')weirdSet=true;else inflSet=true;}
 
 function payload(extra){
   const v=id=>document.getElementById(id).value.trim();
@@ -242,16 +268,28 @@ function payload(extra){
     tempo:v('tempo'), musical_key:v('key'), vocal:v('vocal'),
     structure:v('structure'), reference:v('ref'), theme_topic:v('topic'),
     duration:v('duration'),
+    instruments:v('instruments'), exclude_styles:v('exclude'), vocal_gender:VG,
+    weirdness: weirdSet?parseInt(document.getElementById('weird').value):null,
+    style_influence: inflSet?parseInt(document.getElementById('infl').value):null,
   },extra||{});
 }
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 
 function songCard(s,i){
   const sid='s'+i;
+  const vg=(s.vocal_gender||'any'), w=(s.weirdness??50), inf=(s.style_influence??50);
   return `<div class="song" data-i="${i}">
     <div class="song-h"><span class="t">${esc(s.title)}</span><span class="g">// ${GENRES[ACTIVE].label}</span></div>
-    <div class="fh"><span>STYLE → Suno “Style of Music”</span><button class="cp" onclick="copy('${sid}_s',this)">copy</button></div>
+    <div class="fh"><span>STYLES → Suno “Styles”</span><button class="cp" onclick="copy('${sid}_s',this)">copy</button></div>
     <pre id="${sid}_s" class="style">${esc(s.style)}</pre>
+    ${s.exclude_styles?`<div class="fh"><span>EXCLUDE → Suno “Exclude styles”</span><button class="cp" onclick="copy('${sid}_x',this)">copy</button></div>
+    <pre id="${sid}_x" class="style">${esc(s.exclude_styles)}</pre>`:''}
+    <div class="meters">
+      <span class="meter">Vocal: <b>${esc(vg)}</b></span>
+      <span class="meter">Weirdness: <b>${w}%</b></span>
+      <span class="meter">Style influence: <b>${inf}%</b></span>
+      <span class="meter dim">↳ set these in Suno “More Options”</span>
+    </div>
     <div class="fh"><span>LYRICS → Suno “Lyrics”</span><button class="cp" onclick="copy('${sid}_l',this)">copy</button></div>
     <pre id="${sid}_l">${esc(s.lyrics)}</pre>
     <div class="rework">
@@ -310,7 +348,7 @@ async function reworkSong(i){
   }catch(e){showErr(e.message);}
 }
 function clearAll(){SONGS=[];render();}
-function exportTxt(){const t=SONGS.map((s,i)=>`### ${i+1}. ${s.title}\n\n[STYLE]\n${s.style}\n\n[LYRICS]\n${s.lyrics}\n`).join('\n'+'='.repeat(50)+'\n\n');dl(t,'songs.txt','text/plain');}
+function exportTxt(){const t=SONGS.map((s,i)=>`### ${i+1}. ${s.title}\n\n[STYLES]\n${s.style}\n\n[EXCLUDE STYLES]\n${s.exclude_styles||'-'}\n\n[VOCAL] ${s.vocal_gender||'any'}   [WEIRDNESS] ${s.weirdness??50}%   [STYLE INFLUENCE] ${s.style_influence??50}%\n\n[LYRICS]\n${s.lyrics}\n`).join('\n'+'='.repeat(50)+'\n\n');dl(t,'songs.txt','text/plain');}
 function exportJson(){dl(JSON.stringify(SONGS,null,2),'songs.json','application/json');}
 function dl(c,n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();}
 

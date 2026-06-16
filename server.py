@@ -56,12 +56,22 @@ class SunoRequest(BaseModel):
     theme_topic: str = Field("", description="Lyrical subject/story to write about")
     explicit: bool = Field(False, description="Allow mature/explicit language")
     duration: str = Field("", description="Target song length, e.g. '2-3 min', 'short 90s'")
+    # ── Suno Advanced parameters (all optional; blank = let AI choose) ──
+    instruments: str = Field("", description="Instruments to feature, e.g. 'nylon guitar, rhodes, sax'")
+    exclude_styles: str = Field("", description="Styles/elements to exclude (Suno 'Exclude styles')")
+    vocal_gender: str = Field("", description="'male' | 'female' | 'any'")
+    weirdness: Optional[int] = Field(None, ge=0, le=100, description="Suno Weirdness % (0-100)")
+    style_influence: Optional[int] = Field(None, ge=0, le=100, description="Suno Style Influence % (0-100)")
 
 
 class SunoResponse(BaseModel):
     title: str
-    style: str
-    lyrics: str
+    style: str            # → Suno "Styles"
+    lyrics: str           # → Suno "Lyrics"
+    exclude_styles: str = ""   # → Suno "Exclude styles"
+    vocal_gender: str = "any"  # → Suno "Vocal Gender"
+    weirdness: int = 50        # → Suno "Weirdness" %
+    style_influence: int = 50  # → Suno "Style Influence" %
 
 
 class BatchRequest(SunoRequest):
@@ -74,34 +84,40 @@ class BatchResponse(BaseModel):
 
 # ─── Prompt ──────────────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are a professional songwriter and Suno AI prompt engineer.
-You write polished, original songs ready to paste straight into Suno.
+You write polished, original songs and configure every Suno Advanced-mode field.
 
 TASK: Given the user's idea (mood, scene, genre, theme, or extra elements),
-write ONE complete original song.
+write ONE complete original song AND set the matching Suno parameters.
 
-OUTPUT FIELDS:
+OUTPUT FIELDS (these map 1:1 to Suno's Advanced create panel):
 1. title  — short evocative song title (1-4 words).
-2. style  — a single Suno "Style of Music" line: comma-separated descriptors
-   covering genre, vocal type, instruments, mood, bpm, and production. If the
-   user gave a base_style, keep its core genre/feel but blend in their new idea.
-   ONE line, no line breaks. For instrumental songs prefix "[Instrumental]" and
-   add "no vocals".
+2. style  — Suno "Styles" line: comma-separated descriptors covering genre,
+   vocal character, KEY INSTRUMENTS, mood, bpm, and production. ONE line, no
+   line breaks. Keep the user's base_style core, blend their new idea, and
+   include any instruments the user named. For instrumental: prefix
+   "[Instrumental]" and add "no vocals".
 3. lyrics — full lyrics using Suno section tags:
-   [Verse] [Pre-Chorus] [Chorus] [Verse 2] [Chorus] [Bridge] [Outro]
-   One line per line, 4-6 sections, repeating chorus, singable and emotional,
-   not cliche. If instrumental: "[Instrumental]" then only structure tags
-   ([Intro][Verse][Build][Drop][Outro]) with no words.
+   [Intro] [Verse] [Pre-Chorus] [Chorus] [Verse 2] [Chorus] [Bridge] [Outro]
+   One line per line, repeating chorus, singable, emotional, not cliche.
+   Fit the section count to the requested length (~30s per section).
+   If instrumental: "[Instrumental]" then only structure tags, no words.
+4. exclude_styles — Suno "Exclude styles": comma-separated things to keep OUT
+   (genres/elements that would clash with this song). 3-6 items.
+5. vocal_gender — "male", "female", or "any" (honor the user's request if given).
+6. weirdness — integer 0-100. Suno "Weirdness": higher = more experimental/odd.
+   Pick a sensible value for the genre (pop ~25, experimental ~70).
+7. style_influence — integer 0-100. Suno "Style Influence": how strongly the
+   style tags steer it. Default ~50; higher for strong genre identity.
 
 RULES:
-- Write lyrics and style in the requested LANGUAGE (default English; Suno
-  handles English best). The style line stays English regardless.
-- Weave in every concrete element the user named. Match the vibe precisely.
+- Write lyrics in the requested LANGUAGE (default English). style/exclude stay English.
+- Weave in every concrete element and instrument the user named. Match the vibe.
 - Original wording only. Never copy existing song lyrics.
-- bpm and genre must be mutually consistent.
+- bpm, key, genre, and instruments must be mutually consistent.
 
 OUTPUT: pure JSON ONLY. No markdown fences. No prose.
 
-{"title":"...","style":"...","lyrics":"[Verse]\\nline\\n\\n[Chorus]\\nline"}
+{"title":"...","style":"...","lyrics":"[Verse]\\nline\\n\\n[Chorus]\\nline","exclude_styles":"...","vocal_gender":"any","weirdness":50,"style_influence":50}
 """
 
 
@@ -121,6 +137,16 @@ def _build_user_msg(req: SunoRequest) -> str:
         parts.append(f"Musical key: {req.musical_key}")
     if req.vocal:
         parts.append(f"Vocal: {req.vocal}")
+    if req.vocal_gender and req.vocal_gender.lower() != "any":
+        parts.append(f"Vocal gender: {req.vocal_gender}")
+    if req.instruments:
+        parts.append(f"Feature these instruments: {req.instruments}")
+    if req.exclude_styles:
+        parts.append(f"Exclude these styles/elements: {req.exclude_styles}")
+    if req.weirdness is not None:
+        parts.append(f"Use weirdness = {req.weirdness}")
+    if req.style_influence is not None:
+        parts.append(f"Use style_influence = {req.style_influence}")
     if req.structure:
         parts.append(f"Song structure (use exactly these sections in order): {req.structure}")
     if req.duration:
@@ -197,10 +223,32 @@ def generate_song(req: SunoRequest) -> SunoResponse:
     missing = [f for f in ("title", "style", "lyrics") if not data.get(f)]
     if missing:
         raise HTTPException(500, f"LLM response missing fields: {missing}")
+    return _to_response(data, req)
+
+
+def _clamp_pct(v, default: int) -> int:
+    try:
+        return max(0, min(100, int(v)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _to_response(data: dict, req: SunoRequest) -> SunoResponse:
+    """Build SunoResponse, letting explicit user overrides win over the LLM."""
+    vg = (req.vocal_gender or data.get("vocal_gender") or "any").lower()
+    if vg not in ("male", "female", "any"):
+        vg = "any"
+    weird = req.weirdness if req.weirdness is not None else _clamp_pct(data.get("weirdness"), 50)
+    infl = req.style_influence if req.style_influence is not None else _clamp_pct(data.get("style_influence"), 50)
+    excl = req.exclude_styles.strip() or str(data.get("exclude_styles", "")).strip()
     return SunoResponse(
         title=str(data["title"]).strip(),
         style=str(data["style"]).strip(),
         lyrics=str(data["lyrics"]).strip(),
+        exclude_styles=excl,
+        vocal_gender=vg,
+        weirdness=weird,
+        style_influence=infl,
     )
 
 
@@ -277,10 +325,14 @@ Honor any tempo/key/vocal/structure/length/genre constraints provided.
 
 OUTPUT FIELDS (pure JSON ONLY, no markdown, no prose):
 1. title  — short evocative title (you may draw it from their lines).
-2. style  — single Suno "Style of Music" line (genre, vocal, instruments, mood, bpm).
+2. style  — Suno "Styles" line (genre, vocal character, key instruments, mood, bpm).
 3. lyrics — full song with Suno section tags, the user's lines kept exactly.
+4. exclude_styles — comma-separated styles/elements to keep out (3-6 items).
+5. vocal_gender — "male" | "female" | "any".
+6. weirdness — integer 0-100 (experimental-ness).
+7. style_influence — integer 0-100 (how strongly style tags steer it).
 
-{"title":"...","style":"...","lyrics":"[Verse]\\n...\\n\\n[Chorus]\\n..."}
+{"title":"...","style":"...","lyrics":"[Verse]\\n...\\n\\n[Chorus]\\n...","exclude_styles":"...","vocal_gender":"any","weirdness":50,"style_influence":50}
 """
 
 
@@ -304,11 +356,7 @@ def complete(req: CompleteRequest):
     missing = [f for f in ("title", "style", "lyrics") if not data.get(f)]
     if missing:
         raise HTTPException(500, f"LLM response missing fields: {missing}")
-    return SunoResponse(
-        title=str(data["title"]).strip(),
-        style=str(data["style"]).strip(),
-        lyrics=str(data["lyrics"]).strip(),
-    )
+    return _to_response(data, req)
 
 
 @app.post("/api/suno/batch", response_model=BatchResponse)
