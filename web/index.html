@@ -439,10 +439,33 @@ const RND={
   vocal:['female alto','female soprano','male tenor','male baritone','breathy female','soulful male','duet','airy androgynous'],
   instr:['nylon guitar, warm pads','rhodes piano, soft sax','808 bass, crisp hats, synth keys','fingerpicked guitar, strings',
     'analog synth, drum machine','upright bass, brushed drums','jangly electric guitar, organ','lush pads, sub bass, vinyl crackle'],
+  idea:{en:[
+    'a late-night drive through the rain, missing someone you let go',
+    'falling for someone you just met, butterflies and city lights',
+    'leaving your hometown for the first time, hopeful but scared',
+    'a slow Sunday morning with the person you love, coffee and sunlight',
+    'dancing alone at 2am to forget a bad week, defiant and free',
+    'a long-distance love kept alive through late phone calls',
+    'looking back on a summer that changed everything',
+    'finding peace after heartbreak, learning to be on your own',
+    'a quiet confession you never had the courage to say',
+    'chasing a dream against everyone telling you to stop'],
+   zh:[
+    '深夜雨中開車，思念一個你放手的人',
+    '對剛認識的人心動，悸動與城市燈火',
+    '第一次離開家鄉，既期待又害怕',
+    '與所愛之人的慵懶週日早晨，咖啡與陽光',
+    '凌晨兩點獨自跳舞忘掉糟糕的一週，倔強又自由',
+    '靠深夜通話維繫的遠距離戀愛',
+    '回望一個改變一切的夏天',
+    '心碎後找回平靜，學會獨自一人',
+    '一句你始終沒勇氣說出口的告白',
+    '不顧所有人勸阻，追逐一個夢']},
 };
 function rpick(a){return a[Math.floor(Math.random()*a.length)];}
 function randomize(){
   pickGenre(rpick(Object.keys(GENRES)));
+  if(MODE!=='cowrite') document.getElementById('idea').value=rpick(RND.idea[LANG]||RND.idea.en);
   document.getElementById('tempo').value=rpick(RND.tempo);
   document.getElementById('key').value=rpick(RND.key);
   document.getElementById('vocal').value=rpick(RND.vocal);
