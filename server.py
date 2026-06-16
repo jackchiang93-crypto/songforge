@@ -152,8 +152,12 @@ def _build_user_msg(req: SunoRequest) -> str:
     if req.duration:
         parts.append(f"Target length: {req.duration} (choose section count to fit; "
                      "~30s per section as a rough guide).")
-    if req.language and req.language.lower() != "english":
-        parts.append(f"Write the lyrics in: {req.language}")
+    lang = (req.language or "english").strip()
+    parts.append(
+        f"IMPORTANT: Write ALL lyrics in {lang.upper()}, regardless of the "
+        f"language used in the description above. The 'style' and 'exclude_styles' "
+        f"fields stay in English."
+    )
     if req.explicit:
         parts.append("Mature/explicit language is allowed if it fits the song.")
     else:
