@@ -1,0 +1,30 @@
+# Secrets — NEVER commit
+.env
+.env.*
+*.key
+*.pem
+secrets/
+config.local.*
+
+# Generated content
+songs/
+output/
+*.mp3
+*.wav
+*.mp4
+songs.txt
+songs.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
