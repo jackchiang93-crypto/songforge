@@ -336,22 +336,24 @@ async function post(path,body){
 async function genOne(){
   const b=document.getElementById('genBtn');const orig=b.textContent;
   let path='/api/suno', body=payload();
+  const T=I18N[LANG];
   if(MODE==='cowrite'){
     const seed=document.getElementById('seed').value.trim();
-    if(!seed){alert('Paste your lyrics first.');return;}
+    if(!seed){alert(T.a_seed);return;}
     path='/api/suno/complete';
     body=payload({seed_lyrics:seed, seed_role:document.getElementById('seedRole').value, idea:document.getElementById('idea2').value.trim()});
-  } else if(!document.getElementById('idea').value.trim()){alert('Describe the song first.');return;}
-  b.disabled=true;b.textContent='⏳ writing… (~30-60s)';
+  } else if(!document.getElementById('idea').value.trim()){alert(T.a_idea);return;}
+  b.disabled=true;b.textContent=T.writing;
   try{SONGS.unshift(await post(path,body));render();}catch(e){showErr(e.message);}
   finally{b.disabled=false;b.textContent=orig;}
 }
 async function genBatch(){
-  if(!document.getElementById('idea').value.trim()){alert('Describe the song first.');return;}
+  const T=I18N[LANG];
+  if(!document.getElementById('idea').value.trim()){alert(T.a_idea);return;}
   const n=Math.max(1,Math.min(20,parseInt(document.getElementById('count').value)||5));
-  const b=document.getElementById('batchBtn');b.disabled=true;b.textContent=`⏳ writing ${n}…`;
+  const b=document.getElementById('batchBtn');b.disabled=true;b.textContent=T.writingN.replace('{n}',n);
   try{const d=await post('/api/suno/batch',payload({count:n}));SONGS=d.songs.concat(SONGS);render();}
-  catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent='▦ Forge a playlist';}
+  catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent=T.batch;}
 }
 async function reworkSong(i){
   const sid='s'+i, s=SONGS[i];
@@ -395,7 +397,7 @@ const I18N={
     slider_hint:'Sliders: drag to override, leave untouched = let AI pick the right value for the genre.',
     l_struct:'Song structure',l_lyrlang:'Lyrics language',l_batch:'Playlist size (batch)',
     sw_instr:'Instrumental',sw_explicit:'Explicit OK',randomize:'🎲 Randomize settings',
-    gen:'⚡ Forge a song',gen_cowrite:'✎ Finish my song',batch:'▦ Forge a playlist',s_out:'OUTPUT',t_out:'Your tracks',clear:'✕ clear',
+    a_idea:'Type what the song is about in the “the song” box first.',a_seed:'Paste your lyrics first.',writing:'⏳ writing… (~30-60s)',writingN:'⏳ writing {n}…',gen:'⚡ Forge a song',gen_cowrite:'✎ Finish my song',batch:'▦ Forge a playlist',s_out:'OUTPUT',t_out:'Your tracks',clear:'✕ clear',
     foot:'SONGFORGE · runs locally · your lyrics never leave your machine except to your chosen LLM backend'},
   zh:{tag:'// 給 Suno 用的 AI 作曲工作台',
     sub:'給歌手與創作玩家的專業寫歌工具 — 做出完整歌曲（歌名 · 風格 · 歌詞），直接匯入 Suno。',
@@ -418,7 +420,7 @@ const I18N={
     slider_hint:'滑桿：拖曳即覆寫；不動 = 讓 AI 依曲風自動給合適值。',
     l_struct:'歌曲結構',l_lyrlang:'歌詞語言',l_batch:'歌單數量（批量）',
     sw_instr:'純音樂',sw_explicit:'允許露骨',randomize:'🎲 隨機數值',
-    gen:'⚡ 生成一首',gen_cowrite:'✎ 完成我的歌',batch:'▦ 生成歌單',s_out:'輸出',t_out:'你的歌曲',clear:'✕ 清除',
+    a_idea:'請先在「這首歌」輸入框寫下這首歌想講什麼。',a_seed:'請先貼上你的歌詞。',writing:'⏳ 生成中…（約 30-60 秒）',writingN:'⏳ 生成 {n} 首中…',gen:'⚡ 生成一首',gen_cowrite:'✎ 完成我的歌',batch:'▦ 生成歌單',s_out:'輸出',t_out:'你的歌曲',clear:'✕ 清除',
     foot:'SONGFORGE · 本機運作 · 歌詞只送往你選的 LLM backend，不外流'},
 };
 let LANG='en';
