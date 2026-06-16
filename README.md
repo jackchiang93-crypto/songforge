@@ -1,22 +1,24 @@
-# 🎵 Suno Song Studio
+# 🎛️ SONGFORGE — Suno Song Studio
 
-Describe a vibe → get a complete, original song (**title + style + lyrics**) ready to paste straight into [Suno](https://suno.com). Generate one song, or a whole playlist in a batch. Then turn the tracks into a YouTube-ready "X-hour playlist" video with one command.
+**An AI songwriting workbench for songwriters & hobbyists.** Describe a song → get a complete, original work (**title + style + lyrics**) ready to paste straight into [Suno](https://suno.com). Shape it with pro controls (tempo, key, vocal, structure, reference), rewrite any section, batch a whole playlist, and render a video.
 
-Built for music-playlist YouTube channels (lofi / R&B / chill / synthwave / etc.).
+Sleek dark "black-tech" UI. Runs entirely on your machine.
 
-![mode](https://img.shields.io/badge/lyrics-AI%20generated-a06bf0) ![license](https://img.shields.io/badge/license-MIT-green)
+![lyrics](https://img.shields.io/badge/lyrics-AI%20generated-7b5cff) ![ui](https://img.shields.io/badge/ui-black--tech-27e0d8) ![license](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
 ## ✨ Features
 
-- **Describe-and-generate** — type a mood, scene, story, or extra elements; an LLM writes a full song with proper Suno section tags (`[Verse]`, `[Chorus]`, `[Bridge]`…).
-- **12 base genres** — Midnight R&B, Groove Pop, Rainy Jazz, Synthwave, City Pop, Dream Pop, Trap Soul, Bossa Nova, Lo-fi, Chill EDM, Epic Cinematic, Soft Acoustic. The chosen genre seeds the style; your idea customizes it.
-- **Playlist batch** — generate up to 20 distinct songs in one click for a full video.
-- **Multi-language lyrics** — English, Korean, Japanese, Mandarin, Spanish.
-- **Instrumental mode** — pure-beat output, no vocals.
-- **Copy & export** — one-click copy of Style / Lyrics, or export the whole batch as `.txt` / `.json`.
-- **Video maker** — `make_video.sh` stitches a cover image + your downloaded mp3s into a 1080p waveform video.
+- **Describe-and-forge** — type a mood, scene, or story; an LLM writes a full song with proper Suno section tags (`[Verse]`, `[Chorus]`, `[Bridge]`…).
+- **Pro songwriting controls** — set **tempo**, **musical key**, **vocal** (range/gender/duet), **song structure**, **stylistic reference** ("in the style of…"), and **lyrical subject**. All optional — leave blank for AI's choice.
+- **Section rework** — not happy with the chorus? Rewrite just that section with a note ("more hopeful, add a metaphor") while the rest stays intact.
+- **14 base genres** — Midnight R&B, Groove Pop, Rainy Jazz, Synthwave, City Pop, Dream Pop, Trap Soul, Bossa Nova, Lo-fi, Piano Ballad, Indie Rock, Chill EDM, Epic Cinematic, Soft Acoustic.
+- **Playlist batch** — generate up to 20 distinct songs in one click.
+- **Multi-language lyrics** — English, Korean, Japanese, Mandarin, Spanish, French.
+- **Instrumental & explicit toggles.**
+- **Copy & export** — one-click copy of Style / Lyrics, or export the batch as `.txt` / `.json`.
+- **Video maker** — `make_video.sh` stitches a cover + mp3s into a 1080p waveform video for YouTube playlists.
 - **Two LLM backends, zero secrets in code** (see below).
 
 ---
@@ -69,11 +71,12 @@ This merges every mp3 in the folder and overlays an animated waveform — ready 
 
 ## 📡 API
 
-| Method | Path              | Body                                                        |
-|--------|-------------------|-------------------------------------------------------------|
-| GET    | `/api/health`     | —                                                           |
-| POST   | `/api/suno`       | `{idea, base_style?, instrumental?, language?}`             |
-| POST   | `/api/suno/batch` | same + `{count: 1-20}`                                       |
+| Method | Path               | Body                                                                                                   |
+|--------|--------------------|--------------------------------------------------------------------------------------------------------|
+| GET    | `/api/health`      | —                                                                                                      |
+| POST   | `/api/suno`        | `{idea, base_style?, instrumental?, explicit?, language?, tempo?, musical_key?, vocal?, structure?, reference?, theme_topic?}` |
+| POST   | `/api/suno/batch`  | same + `{count: 1-20}`                                                                                  |
+| POST   | `/api/suno/rework` | `{lyrics, section, note?, title?, style?, language?}`                                                   |
 
 Response: `{title, style, lyrics}` (batch wraps them in `{songs: [...]}`).
 

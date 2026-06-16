@@ -47,6 +47,14 @@ class SunoRequest(BaseModel):
     base_style: str = Field("", description="Optional base style string to build on")
     instrumental: bool = Field(False, description="True = no vocals")
     language: str = Field("english", description="Lyrics language")
+    # ── Pro songwriting controls (all optional) ──
+    tempo: str = Field("", description="e.g. '90 bpm' or 'slow ballad'")
+    musical_key: str = Field("", description="e.g. 'C minor', 'A major'")
+    vocal: str = Field("", description="e.g. 'female alto', 'male tenor', 'duet'")
+    structure: str = Field("", description="e.g. 'Verse-Chorus-Verse-Chorus-Bridge-Chorus'")
+    reference: str = Field("", description="Stylistic reference, e.g. 'in the style of 90s neo-soul'")
+    theme_topic: str = Field("", description="Lyrical subject/story to write about")
+    explicit: bool = Field(False, description="Allow mature/explicit language")
 
 
 class SunoResponse(BaseModel):
@@ -100,8 +108,24 @@ def _build_user_msg(req: SunoRequest) -> str:
     parts = [f"Song idea: {req.idea.strip()}"]
     if req.base_style:
         parts.append(f"Base style to build on: {req.base_style}")
+    if req.theme_topic:
+        parts.append(f"Lyrical subject / story: {req.theme_topic}")
+    if req.reference:
+        parts.append(f"Stylistic reference: {req.reference}")
+    if req.tempo:
+        parts.append(f"Tempo: {req.tempo}")
+    if req.musical_key:
+        parts.append(f"Musical key: {req.musical_key}")
+    if req.vocal:
+        parts.append(f"Vocal: {req.vocal}")
+    if req.structure:
+        parts.append(f"Song structure (use exactly these sections in order): {req.structure}")
     if req.language and req.language.lower() != "english":
         parts.append(f"Write the lyrics in: {req.language}")
+    if req.explicit:
+        parts.append("Mature/explicit language is allowed if it fits the song.")
+    else:
+        parts.append("Keep lyrics clean (no explicit profanity).")
     if req.instrumental:
         parts.append("This must be INSTRUMENTAL: no vocals, no lyric words.")
     return "\n".join(parts)
@@ -121,7 +145,7 @@ def _parse_json(raw: str) -> dict:
         raise HTTPException(500, f"LLM did not return valid JSON. Raw: {raw[:200]}")
 
 
-def _call_api(user_msg: str) -> dict:
+def _call_api(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
     try:
         import anthropic
     except ImportError:
@@ -130,14 +154,14 @@ def _call_api(user_msg: str) -> dict:
     resp = client.messages.create(
         model=MODEL,
         max_tokens=2000,
-        system=SYSTEM_PROMPT,
+        system=system,
         messages=[{"role": "user", "content": user_msg}],
     )
     return _parse_json(resp.content[0].text)
 
 
-def _call_cli(user_msg: str) -> dict:
-    prompt = f"{SYSTEM_PROMPT}\n\n{user_msg}\n\nReturn JSON:"
+def _call_cli(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
+    prompt = f"{system}\n\n{user_msg}\n\nReturn JSON:"
     try:
         result = subprocess.run(
             ["claude", "-p", prompt],
@@ -181,6 +205,42 @@ def suno(req: SunoRequest):
     if not req.idea.strip():
         raise HTTPException(400, "idea must not be empty")
     return generate_song(req)
+
+
+class ReworkRequest(BaseModel):
+    title: str = ""
+    style: str = ""
+    lyrics: str = Field(..., description="Current full lyrics")
+    section: str = Field(..., description="Which section to rewrite, e.g. 'Chorus', 'Verse 2'")
+    note: str = Field("", description="What to change, e.g. 'more hopeful, add a metaphor'")
+    language: str = "english"
+
+
+REWORK_SYSTEM = """You are a professional lyric editor. Rewrite ONLY the requested
+section of a song, keeping it consistent with the rest of the lyrics, the title,
+and the style. Preserve rhyme feel and syllable count so it stays singable.
+Return the FULL updated lyrics (all sections), using the same Suno section tags.
+OUTPUT: pure JSON ONLY: {"title":"...","style":"...","lyrics":"..."}"""
+
+
+@app.post("/api/suno/rework", response_model=SunoResponse)
+def rework(req: ReworkRequest):
+    """Regenerate a single section while keeping the rest of the song intact."""
+    if not req.lyrics.strip() or not req.section.strip():
+        raise HTTPException(400, "lyrics and section are required")
+    msg = (
+        f"Title: {req.title}\nStyle: {req.style}\n\nCurrent lyrics:\n{req.lyrics}\n\n"
+        f"Rewrite the [{req.section}] section. Change: {req.note or 'improve it'}.\n"
+        f"Language: {req.language}"
+    )
+    data = _call_api(msg, REWORK_SYSTEM) if API_KEY else _call_cli(msg, REWORK_SYSTEM)
+    if not data.get("lyrics"):
+        raise HTTPException(500, "LLM response missing field: lyrics")
+    return SunoResponse(
+        title=str(data.get("title", req.title)).strip(),
+        style=str(data.get("style", req.style)).strip(),
+        lyrics=str(data["lyrics"]).strip(),
+    )
 
 
 @app.post("/api/suno/batch", response_model=BatchResponse)

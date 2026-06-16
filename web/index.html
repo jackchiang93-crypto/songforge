@@ -3,238 +3,282 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🎵 Suno Song Studio</title>
+<title>SONGFORGE · Suno Song Studio</title>
 <style>
   :root{
-    --bg:#0d0814; --panel:#150d1f; --card:#1a1226; --line:#3a2a4a;
-    --accent:#a06bf0; --accent2:#7e4fd4; --text:#e8e0f0; --dim:#9a8ab0;
-    --green:#6FCF97; --red:#c0736a;
-    --mono:'SF Mono',Menlo,monospace; --sans:-apple-system,system-ui,sans-serif;
+    --bg:#050507; --bg2:#0a0a0f; --panel:#0d0d14; --card:#101019; --line:#1c1c2a;
+    --line2:#262638; --cyan:#27e0d8; --violet:#7b5cff; --grad:linear-gradient(135deg,#7b5cff,#27e0d8);
+    --text:#e6e8f0; --dim:#7a7d93; --dim2:#4d5066; --green:#4ade80; --red:#ff5d6c;
+    --mono:'SF Mono','JetBrains Mono',Menlo,monospace; --sans:-apple-system,'Inter',system-ui,sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);padding:0 0 80px;line-height:1.5}
-  .wrap{max-width:1100px;margin:0 auto;padding:0 20px}
-  header{background:linear-gradient(135deg,#1a1226,#241433);border-bottom:1px solid var(--accent2);padding:26px 0}
-  header h1{font-size:26px;letter-spacing:1px}
-  header p{color:var(--dim);font-size:13px;margin-top:6px}
-  .status{display:inline-block;font-size:11px;padding:3px 12px;border-radius:12px;background:#2a1a3a;color:var(--dim);margin-top:10px}
-  .status.on{background:rgba(111,207,151,.12);color:var(--green)}
-  .status.off{background:rgba(192,115,106,.12);color:var(--red)}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.5;
+    background-image:radial-gradient(circle at 20% -10%,rgba(123,92,255,.08),transparent 40%),
+                     radial-gradient(circle at 90% 0%,rgba(39,224,216,.06),transparent 35%);
+    padding-bottom:80px}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+  ::selection{background:var(--violet);color:#fff}
 
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin-top:20px}
-  .panel h2{font-size:15px;letter-spacing:1px;color:#c9a4ff;margin-bottom:14px}
+  header{border-bottom:1px solid var(--line);padding:22px 0;backdrop-filter:blur(8px);
+    position:sticky;top:0;z-index:10;background:rgba(5,5,7,.85)}
+  .brand{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .logo{font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:2px;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .tag{font-size:12px;color:var(--dim);font-family:var(--mono)}
+  .status{margin-left:auto;font-size:11px;font-family:var(--mono);padding:4px 12px;border-radius:6px;
+    border:1px solid var(--line2);color:var(--dim)}
+  .status.on{border-color:rgba(74,222,128,.4);color:var(--green)}
+  .status.off{border-color:rgba(255,93,108,.4);color:var(--red)}
+  .sub{color:var(--dim);font-size:13px;margin-top:8px}
 
-  label{display:block;font-size:11px;letter-spacing:1px;color:var(--dim);margin:12px 0 6px;text-transform:uppercase}
-  textarea,input,select{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;
-    color:var(--text);font-family:var(--sans);font-size:14px;padding:11px 13px;outline:none}
-  textarea{resize:vertical;min-height:72px;line-height:1.6}
-  textarea:focus,input:focus,select:focus{border-color:var(--accent)}
-  .row{display:flex;gap:12px;flex-wrap:wrap}
-  .row>*{flex:1;min-width:140px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-top:22px}
+  .sec-num{font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:2px}
+  .sec-title{font-size:15px;font-weight:600;margin:4px 0 16px;letter-spacing:.3px}
 
-  .genres{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-  .genre{background:#2a1a3a;color:#b39ddb;border:1px solid transparent;padding:7px 13px;border-radius:8px;
-    cursor:pointer;font-size:12px;transition:.15s}
-  .genre:hover{border-color:var(--accent)}
-  .genre.active{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;font-weight:600}
+  label{display:block;font-size:10px;letter-spacing:1.5px;color:var(--dim);
+    margin:14px 0 6px;text-transform:uppercase;font-family:var(--mono)}
+  textarea,input,select{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;
+    color:var(--text);font-family:var(--sans);font-size:14px;padding:12px 14px;outline:none;transition:.15s}
+  textarea{resize:vertical;min-height:80px;line-height:1.65}
+  textarea:focus,input:focus,select:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(123,92,255,.12)}
+  textarea::placeholder,input::placeholder{color:var(--dim2)}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
 
-  .btns{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
-  button.primary{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;border:none;
-    padding:12px 22px;border-radius:10px;cursor:pointer;font-weight:bold;font-size:14px;letter-spacing:.5px}
-  button.ghost{background:#2a1a3a;color:#c9a4ff;border:1px solid var(--accent2);padding:11px 18px;
-    border-radius:10px;cursor:pointer;font-size:13px}
-  button:disabled{opacity:.5;cursor:wait}
-  .toggle{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:13px;cursor:pointer;user-select:none}
-  .count{color:var(--dim);font-size:12px;margin-left:auto}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{background:var(--bg2);color:var(--dim);border:1px solid var(--line2);padding:8px 14px;
+    border-radius:9px;cursor:pointer;font-size:12px;transition:.15s;font-family:var(--mono)}
+  .chip:hover{border-color:var(--violet);color:var(--text)}
+  .chip.active{background:var(--grad);color:#050507;font-weight:700;border-color:transparent}
 
-  .song{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-top:14px}
-  .song-h{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
-  .song-h .t{font-size:17px;font-weight:bold;color:#c9a4ff}
-  .song-h .g{font-size:11px;color:var(--dim)}
-  .field-h{display:flex;align-items:center;gap:8px;margin:10px 0 4px}
-  .field-h span{font-size:10px;letter-spacing:2px;color:var(--dim)}
-  pre{background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:11px;white-space:pre-wrap;
-    word-break:break-word;font-size:12px;line-height:1.55;font-family:var(--mono);color:#d8c8e8;margin:0}
-  pre.lyr{color:#c8d8e0}
-  .cp{background:#2a1a3a;color:#c9a4ff;border:none;border-radius:5px;padding:2px 9px;cursor:pointer;font-size:11px}
-  .err{color:#e08080;background:#1a0d0d;border-radius:8px;padding:12px;font-family:var(--mono);font-size:12px;margin-top:12px}
+  .adv-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;
+    color:var(--cyan);font-family:var(--mono);font-size:12px;margin-top:18px}
+  .adv-toggle::before{content:'▸';transition:.2s}
+  .adv-toggle.open::before{transform:rotate(90deg)}
+  #adv{display:none;margin-top:14px;padding-top:16px;border-top:1px solid var(--line)}
+  #adv.open{display:block}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:20px}
+  .btn{border:none;border-radius:11px;cursor:pointer;font-weight:700;letter-spacing:.5px;transition:.15s;font-size:13px}
+  .btn.primary{background:var(--grad);color:#050507;padding:13px 24px;font-size:14px}
+  .btn.primary:hover{filter:brightness(1.1);box-shadow:0 6px 24px rgba(123,92,255,.3)}
+  .btn.ghost{background:var(--bg2);color:var(--cyan);border:1px solid var(--line2);padding:12px 18px}
+  .btn.ghost:hover{border-color:var(--cyan)}
+  .btn:disabled{opacity:.45;cursor:wait;filter:none;box-shadow:none}
+  .switch{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:13px;cursor:pointer;user-select:none}
+  .count{color:var(--dim2);font-size:12px;font-family:var(--mono);margin-left:auto}
+
+  .song{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:16px;
+    position:relative;overflow:hidden}
+  .song::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad)}
+  .song-h{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .song-h .t{font-size:19px;font-weight:700}
+  .song-h .g{font-size:11px;color:var(--dim);font-family:var(--mono)}
+  .fh{display:flex;align-items:center;gap:10px;margin:14px 0 5px}
+  .fh span{font-size:10px;letter-spacing:2px;color:var(--dim);font-family:var(--mono)}
+  pre{background:var(--bg);border:1px solid var(--line2);border-radius:9px;padding:13px;white-space:pre-wrap;
+    word-break:break-word;font-size:12.5px;line-height:1.6;font-family:var(--mono);color:#cdd2e6;margin:0}
+  pre.style{color:var(--cyan)}
+  .cp{background:var(--bg2);color:var(--cyan);border:1px solid var(--line2);border-radius:6px;
+    padding:3px 11px;cursor:pointer;font-size:11px;font-family:var(--mono)}
+  .cp:hover{border-color:var(--cyan)}
+  .rework{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
+  .rework input{flex:1;min-width:160px;font-size:12px;padding:9px 11px}
+  .rework select{width:auto;font-size:12px;padding:9px 11px}
+  .err{color:var(--red);background:rgba(255,93,108,.06);border:1px solid rgba(255,93,108,.25);
+    border-radius:10px;padding:13px;font-family:var(--mono);font-size:12px;margin-top:14px}
   .hint{color:var(--dim);font-size:12px}
-  a{color:var(--accent)}
+  code{font-family:var(--mono);color:var(--cyan)}
+  footer{text-align:center;color:var(--dim2);font-size:11px;margin-top:40px;font-family:var(--mono)}
 </style>
 </head>
 <body>
 <header><div class="wrap">
-  <h1>🎵 Suno Song Studio</h1>
-  <p>Describe a vibe → get a complete song (title + style + lyrics) ready to paste into Suno. Generate one, or a whole playlist.</p>
-  <span class="status" id="status">checking backend…</span>
+  <div class="brand">
+    <div class="logo">SONGFORGE</div>
+    <div class="tag">// AI songwriting workbench for Suno</div>
+    <span class="status" id="status">connecting…</span>
+  </div>
+  <p class="sub">A professional writing tool for songwriters &amp; hobbyists — craft complete songs (title · style · lyrics), then export straight into Suno.</p>
 </div></header>
 
 <div class="wrap">
 
   <div class="panel">
-    <h2>1 · Pick a base genre (optional)</h2>
-    <div class="genres" id="genres"></div>
-    <p class="hint" id="genreStyle" style="margin-top:8px;font-style:italic"></p>
+    <div class="sec-num">01 / GENRE</div>
+    <div class="sec-title">Choose a sonic foundation</div>
+    <div class="chips" id="genres"></div>
+    <p class="hint" id="genreStyle" style="margin-top:10px;font-family:var(--mono);color:var(--dim2)"></p>
 
-    <label>2 · What do you want? (mood, scene, story, extra elements)</label>
-    <textarea id="idea" placeholder="e.g. late-night R&B with a lonely rainy feel, just after a breakup, catchy chorus — for a study/chill YouTube playlist"></textarea>
+    <label>02 / The song — what's it about? what should it feel like?</label>
+    <textarea id="idea" placeholder="e.g. a slow-burn confession song about missing someone across a city at night; intimate, honest, building to a big emotional chorus"></textarea>
 
-    <div class="row" style="margin-top:6px">
-      <div>
-        <label>Lyrics language</label>
-        <select id="lang">
-          <option value="english">English</option>
-          <option value="korean">Korean (한국어)</option>
-          <option value="japanese">Japanese (日本語)</option>
-          <option value="mandarin">Mandarin (中文)</option>
-          <option value="spanish">Spanish</option>
-        </select>
+    <div class="adv-toggle" id="advT" onclick="toggleAdv()">PRO CONTROLS — tempo · key · vocal · structure · reference</div>
+    <div id="adv">
+      <div class="grid g2">
+        <div><label>Lyrical subject / story</label><input id="topic" placeholder="long-distance love, leaving a small town…"></div>
+        <div><label>Stylistic reference</label><input id="ref" placeholder="in the style of 90s neo-soul / Frank Ocean-esque"></div>
       </div>
-      <div>
-        <label>Playlist size (batch)</label>
-        <input id="count" type="number" min="1" max="20" value="5">
+      <div class="grid g3" style="margin-top:4px">
+        <div><label>Tempo</label><input id="tempo" placeholder="92 bpm / slow ballad"></div>
+        <div><label>Musical key</label><input id="key" placeholder="C minor"></div>
+        <div><label>Vocal</label><input id="vocal" placeholder="female alto / male tenor / duet"></div>
+      </div>
+      <div class="grid g2" style="margin-top:4px">
+        <div><label>Song structure</label><input id="structure" placeholder="Verse-Chorus-Verse-Chorus-Bridge-Chorus"></div>
+        <div><label>Lyrics language</label>
+          <select id="lang">
+            <option value="english">English</option>
+            <option value="korean">Korean 한국어</option>
+            <option value="japanese">Japanese 日本語</option>
+            <option value="mandarin">Mandarin 中文</option>
+            <option value="spanish">Spanish</option>
+            <option value="french">French</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid g2" style="margin-top:4px">
+        <div><label>Playlist size (batch)</label><input id="count" type="number" min="1" max="20" value="5"></div>
+        <div style="display:flex;gap:18px;align-items:flex-end;padding-bottom:4px">
+          <label class="switch" style="margin:0"><input type="checkbox" id="instr"> Instrumental</label>
+          <label class="switch" style="margin:0"><input type="checkbox" id="explicit"> Explicit OK</label>
+        </div>
       </div>
     </div>
 
-    <div class="btns">
-      <button class="primary" id="genBtn" onclick="genOne()">✨ Generate 1 song</button>
-      <button class="ghost" id="batchBtn" onclick="genBatch()">⚡ Generate playlist</button>
-      <label class="toggle"><input type="checkbox" id="instr"> Instrumental (no vocals)</label>
-      <span class="count" id="count_out">0 songs</span>
+    <div class="actions">
+      <button class="btn primary" id="genBtn" onclick="genOne()">⚡ Forge a song</button>
+      <button class="btn ghost" id="batchBtn" onclick="genBatch()">▦ Forge a playlist</button>
+      <span class="count" id="count_out">0 tracks</span>
     </div>
   </div>
 
   <div class="panel" id="resultsPanel" style="display:none">
-    <h2 style="display:flex;align-items:center">3 · Your songs
-      <button class="ghost" style="margin-left:auto" onclick="exportTxt()">⬇️ Export .txt</button>
-      <button class="ghost" onclick="exportJson()">⬇️ Export .json</button>
-      <button class="ghost" onclick="clearAll()">🗑 Clear</button>
-    </h2>
-    <div id="results"></div>
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px">
+      <div><div class="sec-num">03 / OUTPUT</div><div class="sec-title" style="margin-bottom:0">Your tracks</div></div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn ghost" onclick="exportTxt()">⬇ .txt</button>
+        <button class="btn ghost" onclick="exportJson()">⬇ .json</button>
+        <button class="btn ghost" onclick="clearAll()">✕ clear</button>
+      </div>
+    </div>
+    <div id="results" style="margin-top:6px"></div>
   </div>
 
+  <footer>SONGFORGE · runs locally · your lyrics never leave your machine except to your chosen LLM backend</footer>
 </div>
 
 <script>
-// Served by the bundled backend → same origin. If you open the file directly,
-// point this at your local server instead.
 const API = location.protocol.startsWith('http') ? '' : 'http://localhost:5001';
 
 const GENRES = {
-  midnight_rnb:{label:'🌃 Midnight R&B', style:'smooth r&b, midnight city vibe, soft breathy female vocals, lo-fi drums, warm rhodes piano, deep mellow bass, vinyl crackle, rainy night, 85 bpm, dreamy reverb'},
-  groove_pop:{label:'🪩 Groove Pop', style:'groove pop, retro funk, laid-back female vocals, punchy bassline, clean electric guitar, vintage synth, head-nodding groove, 95 bpm, polished'},
-  rainy_jazz:{label:'🌧️ Rainy Jazz', style:'jazz lounge, rainy mood, soft female jazz vocals, brushed drums, upright bass, mellow saxophone, warm piano, intimate club, 75 bpm'},
-  synthwave:{label:'🌆 Synthwave', style:'chillwave, synthwave, dreamy ethereal female vocals, analog synth pads, retro drum machine, neon night drive, 80s nostalgia, 90 bpm, lush reverb'},
-  acoustic:{label:'☀️ Soft Acoustic', style:'indie folk acoustic, gentle female vocals, fingerpicked guitar, soft piano, morning sunlight, organic warm, healing, 80 bpm'},
-  lofi:{label:'🎧 Lo-fi Focus', style:'lo-fi hip hop, mellow jazzy chords, dusty drums, warm sub bass, tape saturation, calm focus, 80 bpm'},
-  citypop:{label:'🏙️ City Pop', style:'japanese city pop, bright female vocals, funky bass, glossy synths, slap guitar, 80s tokyo nightlife, upbeat, 110 bpm'},
-  dreampop:{label:'💗 Dream Pop', style:'dream pop, shoegaze, hazy reverb female vocals, washed-out guitars, lush pads, ethereal, 100 bpm'},
-  trap_soul:{label:'🌙 Trap Soul', style:'trap soul, moody male/female vocals, 808 bass, crisp hi-hats, atmospheric keys, late-night, 70 bpm'},
-  bossa:{label:'🌴 Bossa Nova', style:'bossa nova, soft brazilian female vocals, nylon guitar, gentle shaker, warm jazz chords, beachside cafe, 90 bpm'},
-  epic:{label:'⚔️ Epic Cinematic', style:'epic cinematic, orchestral, soaring choir, powerful strings, big percussion, heroic, trailer music, 120 bpm'},
-  edm_chill:{label:'🌊 Chill EDM', style:'melodic chill house, soft female topline, warm plucks, deep bass, festival sunset, smooth drop, 118 bpm'},
+  midnight_rnb:{label:'Midnight R&B', style:'smooth r&b, midnight city vibe, soft breathy female vocals, lo-fi drums, warm rhodes piano, deep mellow bass, vinyl crackle, rainy night, 85 bpm, dreamy reverb'},
+  groove_pop:{label:'Groove Pop', style:'groove pop, retro funk, laid-back female vocals, punchy bassline, clean electric guitar, vintage synth, head-nodding groove, 95 bpm, polished'},
+  rainy_jazz:{label:'Rainy Jazz', style:'jazz lounge, rainy mood, soft female jazz vocals, brushed drums, upright bass, mellow saxophone, warm piano, intimate club, 75 bpm'},
+  synthwave:{label:'Synthwave', style:'chillwave, synthwave, dreamy ethereal female vocals, analog synth pads, retro drum machine, neon night drive, 80s nostalgia, 90 bpm, lush reverb'},
+  acoustic:{label:'Soft Acoustic', style:'indie folk acoustic, gentle female vocals, fingerpicked guitar, soft piano, morning sunlight, organic warm, healing, 80 bpm'},
+  lofi:{label:'Lo-fi Focus', style:'lo-fi hip hop, mellow jazzy chords, dusty drums, warm sub bass, tape saturation, calm focus, 80 bpm'},
+  citypop:{label:'City Pop', style:'japanese city pop, bright female vocals, funky bass, glossy synths, slap guitar, 80s tokyo nightlife, upbeat, 110 bpm'},
+  dreampop:{label:'Dream Pop', style:'dream pop, shoegaze, hazy reverb female vocals, washed-out guitars, lush pads, ethereal, 100 bpm'},
+  trap_soul:{label:'Trap Soul', style:'trap soul, moody vocals, 808 bass, crisp hi-hats, atmospheric keys, late-night, 70 bpm'},
+  bossa:{label:'Bossa Nova', style:'bossa nova, soft brazilian female vocals, nylon guitar, gentle shaker, warm jazz chords, beachside cafe, 90 bpm'},
+  ballad:{label:'Piano Ballad', style:'emotional piano ballad, powerful expressive vocals, swelling strings, intimate to anthemic dynamics, cinematic, 68 bpm'},
+  indie_rock:{label:'Indie Rock', style:'indie rock, jangly guitars, driving drums, warm bass, earnest vocals, anthemic chorus, 128 bpm'},
+  edm_chill:{label:'Chill EDM', style:'melodic chill house, soft female topline, warm plucks, deep bass, festival sunset, smooth drop, 118 bpm'},
+  epic:{label:'Epic Cinematic', style:'epic cinematic, orchestral, soaring choir, powerful strings, big percussion, heroic trailer music, 120 bpm'},
 };
 
-let ACTIVE = 'midnight_rnb';
-let SONGS = [];
+let ACTIVE='midnight_rnb', SONGS=[];
 
-function pickGenre(k){
-  ACTIVE = k;
-  document.querySelectorAll('#genres .genre').forEach(b=>b.classList.toggle('active', b.dataset.k===k));
-  document.getElementById('genreStyle').textContent = '↳ base style: ' + GENRES[k].style;
-}
+function pickGenre(k){ACTIVE=k;
+  document.querySelectorAll('#genres .chip').forEach(b=>b.classList.toggle('active',b.dataset.k===k));
+  document.getElementById('genreStyle').textContent='↳ '+GENRES[k].style;}
+function toggleAdv(){document.getElementById('adv').classList.toggle('open');document.getElementById('advT').classList.toggle('open');}
 
 function payload(extra){
+  const v=id=>document.getElementById(id).value.trim();
   return Object.assign({
-    idea: document.getElementById('idea').value.trim(),
-    base_style: GENRES[ACTIVE].style,
-    instrumental: document.getElementById('instr').checked,
-    language: document.getElementById('lang').value,
-  }, extra||{});
+    idea:v('idea'), base_style:GENRES[ACTIVE].style,
+    instrumental:document.getElementById('instr').checked,
+    explicit:document.getElementById('explicit').checked,
+    language:v('lang')||'english',
+    tempo:v('tempo'), musical_key:v('key'), vocal:v('vocal'),
+    structure:v('structure'), reference:v('ref'), theme_topic:v('topic'),
+  },extra||{});
 }
-
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 
+function songCard(s,i){
+  const sid='s'+i;
+  return `<div class="song" data-i="${i}">
+    <div class="song-h"><span class="t">${esc(s.title)}</span><span class="g">// ${GENRES[ACTIVE].label}</span></div>
+    <div class="fh"><span>STYLE → Suno “Style of Music”</span><button class="cp" onclick="copy('${sid}_s',this)">copy</button></div>
+    <pre id="${sid}_s" class="style">${esc(s.style)}</pre>
+    <div class="fh"><span>LYRICS → Suno “Lyrics”</span><button class="cp" onclick="copy('${sid}_l',this)">copy</button></div>
+    <pre id="${sid}_l">${esc(s.lyrics)}</pre>
+    <div class="rework">
+      <select id="${sid}_sec">
+        <option>Chorus</option><option>Verse</option><option>Verse 2</option>
+        <option>Pre-Chorus</option><option>Bridge</option><option>Intro</option><option>Outro</option>
+      </select>
+      <input id="${sid}_note" placeholder="how to change it — e.g. more hopeful, add a metaphor">
+      <button class="btn ghost" style="padding:9px 14px" onclick="reworkSong(${i})">↻ rework section</button>
+    </div>
+  </div>`;
+}
 function render(){
-  const box = document.getElementById('results');
-  box.innerHTML = SONGS.map((s,i)=>{
-    const sid='s'+i;
-    return `<div class="song">
-      <div class="song-h"><span class="t">"${esc(s.title)}"</span><span class="g">${GENRES[ACTIVE].label}</span></div>
-      <div class="field-h"><span>STYLE → Suno "Style of Music"</span>
-        <button class="cp" onclick="copy('${sid}_s',this)">📋</button></div>
-      <pre id="${sid}_s">${esc(s.style)}</pre>
-      <div class="field-h"><span>LYRICS → Suno "Lyrics" · Title: ${esc(s.title)}</span>
-        <button class="cp" onclick="copy('${sid}_l',this)">📋</button></div>
-      <pre id="${sid}_l" class="lyr">${esc(s.lyrics)}</pre>
-    </div>`;
-  }).join('');
-  document.getElementById('resultsPanel').style.display = SONGS.length?'block':'none';
-  document.getElementById('count_out').textContent = SONGS.length+' songs';
+  document.getElementById('results').innerHTML=SONGS.map(songCard).join('');
+  document.getElementById('resultsPanel').style.display=SONGS.length?'block':'none';
+  document.getElementById('count_out').textContent=SONGS.length+' tracks';
 }
-
-function copy(id,btn){navigator.clipboard.writeText(document.getElementById(id).innerText);
-  const o=btn.textContent;btn.textContent='✅';setTimeout(()=>btn.textContent=o,1200);}
-
-function showErr(m){
-  document.getElementById('resultsPanel').style.display='block';
+function copy(id,b){navigator.clipboard.writeText(document.getElementById(id).innerText);
+  const o=b.textContent;b.textContent='✓ copied';setTimeout(()=>b.textContent=o,1200);}
+function showErr(m){document.getElementById('resultsPanel').style.display='block';
   document.getElementById('results').insertAdjacentHTML('afterbegin',
-    `<div class="err">❌ ${esc(m)}<br><span class="hint">Backend running? &nbsp;<code>uvicorn server:app --port 5001</code></span></div>`);
-}
+    `<div class="err">✕ ${esc(m)}<br><span class="hint">Backend running? &nbsp;<code>uvicorn server:app --port 5001</code></span></div>`);}
 
+async function post(path,body){
+  const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){const e=await r.json().catch(()=>({detail:r.statusText}));throw new Error(e.detail||r.statusText);}
+  return r.json();
+}
 async function genOne(){
-  const idea=document.getElementById('idea').value.trim();
-  if(!idea){alert('Describe what you want first.');return;}
-  const b=document.getElementById('genBtn');b.disabled=true;b.textContent='⏳ Writing… (~30-60s)';
-  try{
-    const r=await fetch(API+'/api/suno',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload())});
-    if(!r.ok){const e=await r.json().catch(()=>({detail:r.statusText}));throw new Error(e.detail||r.statusText);}
-    SONGS.unshift(await r.json());render();
-  }catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent='✨ Generate 1 song';}
+  if(!document.getElementById('idea').value.trim()){alert('Describe the song first.');return;}
+  const b=document.getElementById('genBtn');b.disabled=true;b.textContent='⏳ writing… (~30-60s)';
+  try{SONGS.unshift(await post('/api/suno',payload()));render();}catch(e){showErr(e.message);}
+  finally{b.disabled=false;b.textContent='⚡ Forge a song';}
 }
-
 async function genBatch(){
-  const idea=document.getElementById('idea').value.trim();
-  if(!idea){alert('Describe what you want first.');return;}
+  if(!document.getElementById('idea').value.trim()){alert('Describe the song first.');return;}
   const n=Math.max(1,Math.min(20,parseInt(document.getElementById('count').value)||5));
-  const b=document.getElementById('batchBtn');b.disabled=true;b.textContent=`⏳ Writing ${n}… (this takes a while)`;
-  try{
-    const r=await fetch(API+'/api/suno/batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload({count:n}))});
-    if(!r.ok){const e=await r.json().catch(()=>({detail:r.statusText}));throw new Error(e.detail||r.statusText);}
-    const d=await r.json();SONGS=d.songs.concat(SONGS);render();
-  }catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent='⚡ Generate playlist';}
+  const b=document.getElementById('batchBtn');b.disabled=true;b.textContent=`⏳ writing ${n}…`;
+  try{const d=await post('/api/suno/batch',payload({count:n}));SONGS=d.songs.concat(SONGS);render();}
+  catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent='▦ Forge a playlist';}
 }
-
+async function reworkSong(i){
+  const sid='s'+i, s=SONGS[i];
+  const section=document.getElementById(sid+'_sec').value;
+  const note=document.getElementById(sid+'_note').value.trim();
+  try{
+    const d=await post('/api/suno/rework',{title:s.title,style:s.style,lyrics:s.lyrics,section,note,language:document.getElementById('lang').value});
+    SONGS[i]=d;render();
+  }catch(e){showErr(e.message);}
+}
 function clearAll(){SONGS=[];render();}
-
-function exportTxt(){
-  const txt=SONGS.map((s,i)=>`### ${i+1}. ${s.title}\n\n[STYLE]\n${s.style}\n\n[LYRICS]\n${s.lyrics}\n`).join('\n'+'='.repeat(50)+'\n\n');
-  dl(txt,'songs.txt','text/plain');
-}
+function exportTxt(){const t=SONGS.map((s,i)=>`### ${i+1}. ${s.title}\n\n[STYLE]\n${s.style}\n\n[LYRICS]\n${s.lyrics}\n`).join('\n'+'='.repeat(50)+'\n\n');dl(t,'songs.txt','text/plain');}
 function exportJson(){dl(JSON.stringify(SONGS,null,2),'songs.json','application/json');}
-function dl(content,name,type){
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();
-}
+function dl(c,n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();}
 
-async function probe(){
-  const s=document.getElementById('status');
-  try{
-    const r=await fetch(API+'/api/health',{signal:AbortSignal.timeout(2500)});
-    if(r.ok){const d=await r.json();s.textContent=`🟢 backend online · ${d.backend} · ${d.model}`;s.className='status on';return;}
-  }catch(e){}
-  s.textContent='🔴 backend offline — run: uvicorn server:app --port 5001';s.className='status off';
-}
+async function probe(){const s=document.getElementById('status');
+  try{const r=await fetch(API+'/api/health',{signal:AbortSignal.timeout(2500)});
+    if(r.ok){const d=await r.json();s.textContent='● '+d.backend+' · '+d.model;s.className='status on';return;}}catch(e){}
+  s.textContent='● backend offline';s.className='status off';}
 
-// init
-(function(){
-  const g=document.getElementById('genres');
-  Object.keys(GENRES).forEach(k=>{
-    const b=document.createElement('div');b.className='genre';b.dataset.k=k;b.textContent=GENRES[k].label;
-    b.onclick=()=>pickGenre(k);g.appendChild(b);
-  });
-  pickGenre('midnight_rnb');
-  probe();setInterval(probe,15000);
-})();
+(function(){const g=document.getElementById('genres');
+  Object.keys(GENRES).forEach(k=>{const b=document.createElement('div');b.className='chip';b.dataset.k=k;b.textContent=GENRES[k].label;b.onclick=()=>pickGenre(k);g.appendChild(b);});
+  pickGenre('midnight_rnb');probe();setInterval(probe,15000);})();
 </script>
 </body>
 </html>
