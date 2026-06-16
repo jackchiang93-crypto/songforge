@@ -112,8 +112,34 @@
     <div class="chips" id="genres"></div>
     <p class="hint" id="genreStyle" style="margin-top:10px;font-family:var(--mono);color:var(--dim2)"></p>
 
-    <label>02 / The song — what's it about? what should it feel like?</label>
-    <textarea id="idea" placeholder="e.g. a slow-burn confession song about missing someone across a city at night; intimate, honest, building to a big emotional chorus"></textarea>
+    <div class="sec-num" style="margin-top:22px">02 / MODE</div>
+    <div class="sec-title">How do you want to write?</div>
+    <div class="chips" id="modes">
+      <div class="chip active" data-m="scratch" onclick="pickMode('scratch')">✶ Forge from scratch</div>
+      <div class="chip" data-m="cowrite" onclick="pickMode('cowrite')">✎ Co-write — I have lyrics</div>
+    </div>
+
+    <div id="scratchBox">
+      <label>The song — what's it about? what should it feel like?</label>
+      <textarea id="idea" placeholder="e.g. a slow-burn confession song about missing someone across a city at night; intimate, honest, building to a big emotional chorus"></textarea>
+    </div>
+
+    <div id="cowriteBox" style="display:none">
+      <label>Your lyrics — paste the lines/sections you already have (kept verbatim)</label>
+      <textarea id="seed" placeholder="Paste your good lines here. e.g.&#10;&#10;I left the porch light on for a ghost&#10;Counting headlights like they're coming home&#10;&#10;AI will keep these exactly and write the rest around them."></textarea>
+      <div class="grid g2" style="margin-top:4px">
+        <div><label>These lines are my…</label>
+          <select id="seedRole">
+            <option value="auto">Let AI decide</option>
+            <option value="chorus">Chorus / hook</option>
+            <option value="verse">Verse</option>
+            <option value="bridge">Bridge</option>
+            <option value="opening">Opening lines</option>
+          </select>
+        </div>
+        <div><label>Extra direction (optional)</label><input id="idea2" placeholder="make the rest match this mood / add a hopeful turn"></div>
+      </div>
+    </div>
 
     <div class="adv-toggle" id="advT" onclick="toggleAdv()">PRO CONTROLS — tempo · key · vocal · structure · reference</div>
     <div id="adv">
@@ -125,6 +151,10 @@
         <div><label>Tempo</label><input id="tempo" placeholder="92 bpm / slow ballad"></div>
         <div><label>Musical key</label><input id="key" placeholder="C minor"></div>
         <div><label>Vocal</label><input id="vocal" placeholder="female alto / male tenor / duet"></div>
+      </div>
+      <div class="grid g2" style="margin-top:4px">
+        <div><label>Target length</label><input id="duration" placeholder="2-3 min / short 90s / radio edit"></div>
+        <div></div>
       </div>
       <div class="grid g2" style="margin-top:4px">
         <div><label>Song structure</label><input id="structure" placeholder="Verse-Chorus-Verse-Chorus-Bridge-Chorus"></div>
@@ -190,11 +220,16 @@ const GENRES = {
   epic:{label:'Epic Cinematic', style:'epic cinematic, orchestral, soaring choir, powerful strings, big percussion, heroic trailer music, 120 bpm'},
 };
 
-let ACTIVE='midnight_rnb', SONGS=[];
+let ACTIVE='midnight_rnb', SONGS=[], MODE='scratch';
 
 function pickGenre(k){ACTIVE=k;
   document.querySelectorAll('#genres .chip').forEach(b=>b.classList.toggle('active',b.dataset.k===k));
   document.getElementById('genreStyle').textContent='↳ '+GENRES[k].style;}
+function pickMode(m){MODE=m;
+  document.querySelectorAll('#modes .chip').forEach(b=>b.classList.toggle('active',b.dataset.m===m));
+  document.getElementById('scratchBox').style.display=m==='scratch'?'block':'none';
+  document.getElementById('cowriteBox').style.display=m==='cowrite'?'block':'none';
+  document.getElementById('genBtn').textContent=m==='cowrite'?'✎ Finish my song':'⚡ Forge a song';}
 function toggleAdv(){document.getElementById('adv').classList.toggle('open');document.getElementById('advT').classList.toggle('open');}
 
 function payload(extra){
@@ -206,6 +241,7 @@ function payload(extra){
     language:v('lang')||'english',
     tempo:v('tempo'), musical_key:v('key'), vocal:v('vocal'),
     structure:v('structure'), reference:v('ref'), theme_topic:v('topic'),
+    duration:v('duration'),
   },extra||{});
 }
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
@@ -245,10 +281,17 @@ async function post(path,body){
   return r.json();
 }
 async function genOne(){
-  if(!document.getElementById('idea').value.trim()){alert('Describe the song first.');return;}
-  const b=document.getElementById('genBtn');b.disabled=true;b.textContent='⏳ writing… (~30-60s)';
-  try{SONGS.unshift(await post('/api/suno',payload()));render();}catch(e){showErr(e.message);}
-  finally{b.disabled=false;b.textContent='⚡ Forge a song';}
+  const b=document.getElementById('genBtn');const orig=b.textContent;
+  let path='/api/suno', body=payload();
+  if(MODE==='cowrite'){
+    const seed=document.getElementById('seed').value.trim();
+    if(!seed){alert('Paste your lyrics first.');return;}
+    path='/api/suno/complete';
+    body=payload({seed_lyrics:seed, seed_role:document.getElementById('seedRole').value, idea:document.getElementById('idea2').value.trim()});
+  } else if(!document.getElementById('idea').value.trim()){alert('Describe the song first.');return;}
+  b.disabled=true;b.textContent='⏳ writing… (~30-60s)';
+  try{SONGS.unshift(await post(path,body));render();}catch(e){showErr(e.message);}
+  finally{b.disabled=false;b.textContent=orig;}
 }
 async function genBatch(){
   if(!document.getElementById('idea').value.trim()){alert('Describe the song first.');return;}

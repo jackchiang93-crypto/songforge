@@ -55,6 +55,7 @@ class SunoRequest(BaseModel):
     reference: str = Field("", description="Stylistic reference, e.g. 'in the style of 90s neo-soul'")
     theme_topic: str = Field("", description="Lyrical subject/story to write about")
     explicit: bool = Field(False, description="Allow mature/explicit language")
+    duration: str = Field("", description="Target song length, e.g. '2-3 min', 'short 90s'")
 
 
 class SunoResponse(BaseModel):
@@ -105,7 +106,9 @@ OUTPUT: pure JSON ONLY. No markdown fences. No prose.
 
 
 def _build_user_msg(req: SunoRequest) -> str:
-    parts = [f"Song idea: {req.idea.strip()}"]
+    parts = []
+    if req.idea.strip():
+        parts.append(f"Song idea: {req.idea.strip()}")
     if req.base_style:
         parts.append(f"Base style to build on: {req.base_style}")
     if req.theme_topic:
@@ -120,6 +123,9 @@ def _build_user_msg(req: SunoRequest) -> str:
         parts.append(f"Vocal: {req.vocal}")
     if req.structure:
         parts.append(f"Song structure (use exactly these sections in order): {req.structure}")
+    if req.duration:
+        parts.append(f"Target length: {req.duration} (choose section count to fit; "
+                     "~30s per section as a rough guide).")
     if req.language and req.language.lower() != "english":
         parts.append(f"Write the lyrics in: {req.language}")
     if req.explicit:
@@ -175,9 +181,14 @@ def _call_cli(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
             "No backend available: set ANTHROPIC_API_KEY, or install Claude Code "
             "(claude CLI) and log in.",
         )
+    out = (result.stdout or "").strip()
+    err = (result.stderr or "").strip()
     if result.returncode != 0:
-        raise HTTPException(500, f"claude CLI failed: {result.stderr[:300]}")
-    return _parse_json(result.stdout)
+        raise HTTPException(500, f"claude CLI failed (rc={result.returncode}): {err[:300] or out[:300] or 'no output'}")
+    # CLI sometimes returns rc=0 with a non-JSON notice (e.g. session/usage limit)
+    if not out.lstrip().startswith(("{", "```")):
+        raise HTTPException(503, f"claude CLI returned no song (likely usage limit or notice): {out[:200]}")
+    return _parse_json(out)
 
 
 def generate_song(req: SunoRequest) -> SunoResponse:
@@ -239,6 +250,63 @@ def rework(req: ReworkRequest):
     return SunoResponse(
         title=str(data.get("title", req.title)).strip(),
         style=str(data.get("style", req.style)).strip(),
+        lyrics=str(data["lyrics"]).strip(),
+    )
+
+
+class CompleteRequest(SunoRequest):
+    idea: str = Field("", description="Optional extra direction (seed_lyrics is the main input)")
+    seed_lyrics: str = Field(..., description="The user's own lyric lines/sections to build around")
+    seed_role: str = Field("auto", description="Where the seed goes: 'chorus', 'verse', 'hook', 'auto'")
+
+
+COMPLETE_SYSTEM = """You are a professional co-writer. The songwriter gives you their
+OWN lyric fragments (a few lines or a section). Build a COMPLETE song around them.
+
+ABSOLUTE RULE: Preserve the user's given lines VERBATIM — same words, same order.
+Do not paraphrase, censor, or "improve" their lines. You may only:
+  - place them in the right section (their stated role, or the most natural one),
+  - write the MISSING sections around them (intro/verses/pre-chorus/bridge/outro),
+  - match their tone, rhyme feel, meter, and theme so the whole song is cohesive,
+  - repeat their lines where a chorus/hook naturally repeats.
+
+Mark the user's original lines so they can see them — wrap each preserved line as is,
+but DO NOT add brackets inside the lyric text other than standard [Section] tags.
+
+Honor any tempo/key/vocal/structure/length/genre constraints provided.
+
+OUTPUT FIELDS (pure JSON ONLY, no markdown, no prose):
+1. title  — short evocative title (you may draw it from their lines).
+2. style  — single Suno "Style of Music" line (genre, vocal, instruments, mood, bpm).
+3. lyrics — full song with Suno section tags, the user's lines kept exactly.
+
+{"title":"...","style":"...","lyrics":"[Verse]\\n...\\n\\n[Chorus]\\n..."}
+"""
+
+
+def _complete_user_msg(req: CompleteRequest) -> str:
+    base = _build_user_msg(req)
+    role = "" if req.seed_role in ("", "auto") else f"\nUse these as the [{req.seed_role}]."
+    return (
+        f"{base}\n\n=== MY OWN LYRICS (preserve verbatim) ==={role}\n"
+        f"{req.seed_lyrics.strip()}\n=== END ===\n"
+        "Build the complete song around the lines above."
+    )
+
+
+@app.post("/api/suno/complete", response_model=SunoResponse)
+def complete(req: CompleteRequest):
+    """Take the user's own lyric fragments and finish the whole song around them."""
+    if not req.seed_lyrics.strip():
+        raise HTTPException(400, "seed_lyrics must not be empty")
+    msg = _complete_user_msg(req)
+    data = _call_api(msg, COMPLETE_SYSTEM) if API_KEY else _call_cli(msg, COMPLETE_SYSTEM)
+    missing = [f for f in ("title", "style", "lyrics") if not data.get(f)]
+    if missing:
+        raise HTTPException(500, f"LLM response missing fields: {missing}")
+    return SunoResponse(
+        title=str(data["title"]).strip(),
+        style=str(data["style"]).strip(),
         lyrics=str(data["lyrics"]).strip(),
     )
 
