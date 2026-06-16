@@ -169,6 +169,8 @@
         <div><label data-i18n="l_key">Musical key</label><input id="key" placeholder="C minor"></div>
         <div><label data-i18n="l_vocal">Vocal</label><input id="vocal" data-ph="ph_vocal" placeholder="female alto / male tenor / duet"></div>
       </div>
+      <label data-i18n="l_voicepre">Voice presets (click to fill)</label>
+      <div class="chips" id="voiceChips"></div>
       <div class="grid g2" style="margin-top:4px">
         <div><label data-i18n="l_instr">Instruments to feature</label><input id="instruments" data-ph="ph_instr" placeholder="nylon guitar, rhodes piano, alto sax, 808"></div>
         <div><label data-i18n="l_excl">Exclude styles (Suno)</label><input id="exclude" data-ph="ph_excl" placeholder="edm, autotune, aggressive drums"></div>
@@ -396,7 +398,7 @@ const I18N={
     l_weird:'Weirdness',l_infl:'Style influence',
     slider_hint:'Sliders: drag to override, leave untouched = let AI pick the right value for the genre.',
     l_struct:'Song structure',l_lyrlang:'Lyrics language',l_batch:'Playlist size (batch)',
-    sw_instr:'Instrumental',sw_explicit:'Explicit OK',randomize:'🎲 Randomize settings',
+    sw_instr:'Instrumental',sw_explicit:'Explicit OK',randomize:'🎲 Randomize settings',l_voicepre:'Voice presets (click to fill)',
     a_idea:'Type what the song is about in the “the song” box first.',a_seed:'Paste your lyrics first.',writing:'⏳ writing… (~30-60s)',writingN:'⏳ writing {n}…',gen:'⚡ Forge a song',gen_cowrite:'✎ Finish my song',batch:'▦ Forge a playlist',s_out:'OUTPUT',t_out:'Your tracks',clear:'✕ clear',
     foot:'SONGFORGE · runs locally · your lyrics never leave your machine except to your chosen LLM backend'},
   zh:{tag:'// 給 Suno 用的 AI 作曲工作台',
@@ -419,7 +421,7 @@ const I18N={
     l_weird:'怪異度 Weirdness',l_infl:'風格影響 Style influence',
     slider_hint:'滑桿：拖曳即覆寫；不動 = 讓 AI 依曲風自動給合適值。',
     l_struct:'歌曲結構',l_lyrlang:'歌詞語言',l_batch:'歌單數量（批量）',
-    sw_instr:'純音樂',sw_explicit:'允許露骨',randomize:'🎲 隨機數值',
+    sw_instr:'純音樂',sw_explicit:'允許露骨',randomize:'🎲 隨機數值',l_voicepre:'聲線預設（點擊填入）',
     a_idea:'請先在「這首歌」輸入框寫下這首歌想講什麼。',a_seed:'請先貼上你的歌詞。',writing:'⏳ 生成中…（約 30-60 秒）',writingN:'⏳ 生成 {n} 首中…',gen:'⚡ 生成一首',gen_cowrite:'✎ 完成我的歌',batch:'▦ 生成歌單',s_out:'輸出',t_out:'你的歌曲',clear:'✕ 清除',
     foot:'SONGFORGE · 本機運作 · 歌詞只送往你選的 LLM backend，不外流'},
 };
@@ -430,6 +432,7 @@ function setLang(l){LANG=l;
   document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.dataset.i18n;if(d[k]!=null)e.textContent=d[k];});
   document.querySelectorAll('[data-ph]').forEach(e=>{const k=e.dataset.ph;if(d[k]!=null)e.placeholder=d[k];});
   document.documentElement.lang=(l==='zh'?'zh-TW':'en');
+  renderVoices();
 }
 
 // ── randomize settings ──
@@ -462,6 +465,22 @@ const RND={
     '一句你始終沒勇氣說出口的告白',
     '不顧所有人勸阻，追逐一個夢']},
 };
+// ── voice timbre presets (fill the Vocal field with Suno-friendly English) ──
+const VOICES=[
+  {en:'Smoky raspy (low)', zh:'低沈菸酒嗓', d:'low raspy smoky husky voice, whiskey-soaked gravelly tone'},
+  {en:'Sweet female', zh:'甜美女聲', d:'sweet bright airy female vocals, cute youthful tone'},
+  {en:'Rich female', zh:'渾厚女聲', d:'rich powerful full-bodied female vocals, soulful belt, warm'},
+  {en:'Rich male', zh:'渾厚男聲', d:'deep resonant rich baritone male vocals, warm chest voice'},
+  {en:'Ethereal female', zh:'空靈女聲', d:'ethereal breathy airy female vocals, dreamy reverb'},
+  {en:'Sultry jazz', zh:'慵懶爵士嗓', d:'lazy sultry jazzy vocals, smoky lounge tone'},
+  {en:'Bright tenor', zh:'清亮男聲', d:'bright clear youthful male tenor, emotive'},
+  {en:'Gritty rock', zh:'沙啞搖滾嗓', d:'gritty raspy rock vocals, raw powerful edge'},
+];
+function fillVoice(d){document.getElementById('vocal').value=d;
+  if(!document.getElementById('adv').classList.contains('open'))toggleAdv();}
+function renderVoices(){const c=document.getElementById('voiceChips');if(!c)return;
+  c.innerHTML='';VOICES.forEach(v=>{const b=document.createElement('div');b.className='chip';
+    b.textContent=(LANG==='zh'?v.zh:v.en);b.title=v.d;b.onclick=()=>fillVoice(v.d);c.appendChild(b);});}
 function rpick(a){return a[Math.floor(Math.random()*a.length)];}
 function randomize(){
   pickGenre(rpick(Object.keys(GENRES)));
@@ -479,7 +498,7 @@ function randomize(){
 
 (function(){const g=document.getElementById('genres');
   Object.keys(GENRES).forEach(k=>{const b=document.createElement('div');b.className='chip';b.dataset.k=k;b.textContent=GENRES[k].label;b.onclick=()=>pickGenre(k);g.appendChild(b);});
-  pickGenre('midnight_rnb');probe();setInterval(probe,15000);})();
+  pickGenre('midnight_rnb');renderVoices();probe();setInterval(probe,15000);})();
 </script>
 </body>
 </html>
