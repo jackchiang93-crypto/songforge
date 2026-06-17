@@ -1,504 +1,526 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SONGFORGE · Suno Song Studio</title>
 <style>
   :root{
-    --bg:#050507; --bg2:#0a0a0f; --panel:#0d0d14; --card:#101019; --line:#1c1c2a;
-    --line2:#262638; --cyan:#27e0d8; --violet:#7b5cff; --grad:linear-gradient(135deg,#7b5cff,#27e0d8);
-    --text:#e6e8f0; --dim:#7a7d93; --dim2:#4d5066; --green:#4ade80; --red:#ff5d6c;
+    --bg:#070709; --bg2:#0d0d12; --panel:#101017; --panel2:#14141c; --card:#13131b;
+    --line:#1e1e2a; --line2:#2a2a3a; --cyan:#2fe6d6; --violet:#8b6bff;
+    --grad:linear-gradient(135deg,#8b6bff,#2fe6d6);
+    --text:#edeef5; --dim:#8a8da0; --dim2:#565a70; --green:#4ade80; --red:#ff5d6c; --amber:#ffb454;
     --mono:'SF Mono','JetBrains Mono',Menlo,monospace; --sans:-apple-system,'Inter',system-ui,sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.5;
-    background-image:radial-gradient(circle at 20% -10%,rgba(123,92,255,.08),transparent 40%),
-                     radial-gradient(circle at 90% 0%,rgba(39,224,216,.06),transparent 35%);
-    padding-bottom:80px}
-  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.55;
+    background-image:radial-gradient(circle at 15% -8%,rgba(139,107,255,.10),transparent 42%),
+                     radial-gradient(circle at 92% 2%,rgba(47,230,214,.07),transparent 38%);
+    padding-bottom:120px}
   ::selection{background:var(--violet);color:#fff}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
 
-  header{border-bottom:1px solid var(--line);padding:22px 0;backdrop-filter:blur(8px);
-    position:sticky;top:0;z-index:10;background:rgba(5,5,7,.85)}
+  /* Header */
+  header{border-bottom:1px solid var(--line);padding:18px 0;position:sticky;top:0;z-index:30;
+    background:rgba(7,7,9,.9);backdrop-filter:blur(10px)}
   .brand{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  .logo{font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:2px;
+  .logo{font-family:var(--mono);font-size:21px;font-weight:700;letter-spacing:2px;
     background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
   .tag{font-size:12px;color:var(--dim);font-family:var(--mono)}
-  .status{margin-left:auto;font-size:11px;font-family:var(--mono);padding:4px 12px;border-radius:6px;
-    border:1px solid var(--line2);color:var(--dim)}
-  .status.on{border-color:rgba(74,222,128,.4);color:var(--green)}
-  .status.off{border-color:rgba(255,93,108,.4);color:var(--red)}
-  .sub{color:var(--dim);font-size:13px;margin-top:8px}
-
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-top:22px}
-  .sec-num{font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:2px}
-  .sec-title{font-size:15px;font-weight:600;margin:4px 0 16px;letter-spacing:.3px}
-
-  label{display:block;font-size:10px;letter-spacing:1.5px;color:var(--dim);
-    margin:14px 0 6px;text-transform:uppercase;font-family:var(--mono)}
-  textarea,input,select{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;
-    color:var(--text);font-family:var(--sans);font-size:14px;padding:12px 14px;outline:none;transition:.15s}
-  textarea{resize:vertical;min-height:80px;line-height:1.65}
-  textarea:focus,input:focus,select:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(123,92,255,.12)}
-  textarea::placeholder,input::placeholder{color:var(--dim2)}
-  .grid{display:grid;gap:14px}
-  .g2{grid-template-columns:1fr 1fr}
-  .g3{grid-template-columns:1fr 1fr 1fr}
-  @media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
-
-  .chips{display:flex;gap:8px;flex-wrap:wrap}
-  .chip{background:var(--bg2);color:var(--dim);border:1px solid var(--line2);padding:8px 14px;
-    border-radius:9px;cursor:pointer;font-size:12px;transition:.15s;font-family:var(--mono)}
-  .chip:hover{border-color:var(--violet);color:var(--text)}
-  .chip.active{background:var(--grad);color:#050507;font-weight:700;border-color:transparent}
-
-  .adv-toggle{display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;width:100%;
-    color:var(--cyan);font-family:var(--mono);font-size:13px;margin-top:18px;text-align:left;
-    background:var(--bg2);border:1px solid var(--line2);border-radius:11px;padding:13px 16px;transition:.15s}
-  .adv-toggle:hover{border-color:var(--cyan);background:#0d1216}
-  .adv-toggle .caret{transition:.2s;display:inline-block}
-  .adv-toggle.open .caret{transform:rotate(90deg)}
-  .adv-toggle .adv-sub{color:var(--dim);font-size:11px}
+  .spacer{margin-left:auto}
+  .status{font-size:11px;font-family:var(--mono);padding:5px 12px;border-radius:7px;border:1px solid var(--line2);color:var(--dim)}
+  .status.on{border-color:rgba(74,222,128,.4);color:var(--green)} .status.off{border-color:rgba(255,93,108,.4);color:var(--red)}
   .langsw{display:flex;gap:2px;background:var(--bg2);border:1px solid var(--line2);border-radius:8px;padding:2px}
-  .langbtn{background:transparent;border:none;color:var(--dim);font-family:var(--mono);font-size:12px;
-    padding:4px 12px;border-radius:6px;cursor:pointer;transition:.15s}
-  .langbtn:hover{color:var(--text)}
-  .langbtn.active{background:var(--grad);color:#050507;font-weight:700}
-  #adv{display:none;margin-top:14px;padding-top:16px;border-top:1px solid var(--line)}
-  #adv.open{display:block}
+  .langbtn{background:transparent;border:none;color:var(--dim);font-family:var(--mono);font-size:12px;padding:5px 12px;border-radius:6px;cursor:pointer}
+  .langbtn.active{background:var(--grad);color:#070709;font-weight:700}
 
-  .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:20px}
-  .btn{border:none;border-radius:11px;cursor:pointer;font-weight:700;letter-spacing:.5px;transition:.15s;font-size:13px}
-  .btn.primary{background:var(--grad);color:#050507;padding:13px 24px;font-size:14px}
-  .btn.primary:hover{filter:brightness(1.1);box-shadow:0 6px 24px rgba(123,92,255,.3)}
-  .btn.ghost{background:var(--bg2);color:var(--cyan);border:1px solid var(--line2);padding:12px 18px}
+  /* Layout */
+  .cols{display:grid;grid-template-columns:1fr 360px;gap:22px;align-items:start;margin-top:22px}
+  @media(max-width:920px){.cols{grid-template-columns:1fr}}
+
+  /* Steps */
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:16px}
+  .step-h{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .step-n{width:30px;height:30px;border-radius:50%;background:var(--grad);color:#070709;font-weight:800;
+    display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .step-t{font-size:17px;font-weight:700}
+  .step-s{font-size:12px;color:var(--dim);margin-left:auto;text-align:right}
+
+  label{display:block;font-size:12px;color:var(--dim);margin:14px 0 7px;font-weight:600}
+  textarea,input,select{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:11px;
+    color:var(--text);font-family:var(--sans);font-size:15px;padding:13px 15px;outline:none;transition:.15s}
+  textarea{resize:vertical;min-height:88px;line-height:1.65}
+  textarea:focus,input:focus,select:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,107,255,.14)}
+  textarea::placeholder,input::placeholder{color:var(--dim2)}
+  .grid{display:grid;gap:13px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:600px){.g2,.g3{grid-template-columns:1fr}}
+
+  /* Chips */
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{background:var(--bg2);color:var(--dim);border:1px solid var(--line2);padding:9px 14px;border-radius:10px;
+    cursor:pointer;font-size:13px;transition:.13s;display:flex;align-items:center;gap:6px;user-select:none}
+  .chip:hover{border-color:var(--violet);color:var(--text)}
+  .chip.active{background:var(--grad);color:#070709;font-weight:700;border-color:transparent}
+  .chip .emo{font-size:15px}
+  .chip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:9px}
+  .chip-grid .chip{justify-content:flex-start}
+  .seg{display:inline-flex;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:3px}
+  .seg button{background:transparent;border:none;color:var(--dim);font-size:13px;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:var(--sans)}
+  .seg button.active{background:var(--grad);color:#070709;font-weight:700}
+
+  .hint{font-size:12px;color:var(--dim);margin-top:8px}
+  .why{font-size:11px;color:var(--dim2);margin-top:5px;font-style:italic}
+
+  /* Advanced */
+  .adv-toggle{display:flex;align-items:center;gap:9px;cursor:pointer;width:100%;color:var(--cyan);
+    font-family:var(--mono);font-size:13px;text-align:left;background:var(--bg2);border:1px solid var(--line2);
+    border-radius:12px;padding:14px 16px;transition:.15s}
+  .adv-toggle:hover{border-color:var(--cyan)}
+  .adv-toggle .caret{transition:.2s} .adv-toggle.open .caret{transform:rotate(90deg)}
+  .adv-toggle .sub{color:var(--dim);font-size:11px}
+  #adv{display:none;margin-top:14px} #adv.open{display:block}
+  .switch{display:inline-flex;align-items:center;gap:8px;color:var(--dim);font-size:14px;cursor:pointer}
+  input[type=range]{padding:0;accent-color:var(--violet)}
+
+  /* Right rail: live Suno preview + create */
+  .rail{position:sticky;top:88px;display:flex;flex-direction:column;gap:14px}
+  @media(max-width:920px){.rail{position:static}}
+  .preview{background:var(--panel2);border:1px solid var(--line2);border-radius:16px;padding:18px}
+  .preview h3{font-size:13px;color:var(--cyan);font-family:var(--mono);letter-spacing:1px;margin-bottom:4px}
+  .preview .note{font-size:11px;color:var(--dim2);margin-bottom:14px}
+  .pf{margin-bottom:12px}
+  .pf .k{font-size:10px;letter-spacing:2px;color:var(--dim);font-family:var(--mono);margin-bottom:4px}
+  .pf .v{background:var(--bg);border:1px solid var(--line2);border-radius:8px;padding:9px 11px;font-family:var(--mono);
+    font-size:12px;line-height:1.5;color:#cdd2e6;min-height:34px;word-break:break-word}
+  .pf .v.cy{color:var(--cyan)}
+  .pmeters{display:flex;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .pmeters b{color:var(--cyan)}
+  .create{width:100%;background:var(--grad);color:#070709;border:none;border-radius:13px;padding:16px;
+    font-size:16px;font-weight:800;letter-spacing:1px;cursor:pointer;transition:.15s}
+  .create:hover{filter:brightness(1.08);box-shadow:0 8px 30px rgba(139,107,255,.35)}
+  .create:disabled{opacity:.5;cursor:wait;filter:none;box-shadow:none}
+  .rail-row{display:flex;gap:9px}
+  .btn{border:none;border-radius:11px;cursor:pointer;font-weight:700;font-size:13px;transition:.15s;font-family:var(--sans)}
+  .btn.ghost{background:var(--bg2);color:var(--cyan);border:1px solid var(--line2);padding:11px 14px;flex:1}
   .btn.ghost:hover{border-color:var(--cyan)}
-  .btn:disabled{opacity:.45;cursor:wait;filter:none;box-shadow:none}
-  .switch{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:13px;cursor:pointer;user-select:none}
-  .count{color:var(--dim2);font-size:12px;font-family:var(--mono);margin-left:auto}
 
-  .song{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:16px;
-    position:relative;overflow:hidden}
+  /* Output */
+  .song{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:18px 20px;margin-top:16px;position:relative;overflow:hidden}
   .song::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad)}
   .song-h{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
-  .song-h .t{font-size:19px;font-weight:700}
-  .song-h .g{font-size:11px;color:var(--dim);font-family:var(--mono)}
+  .song-h .t{font-size:20px;font-weight:800}.song-h .g{font-size:11px;color:var(--dim);font-family:var(--mono)}
   .fh{display:flex;align-items:center;gap:10px;margin:14px 0 5px}
   .fh span{font-size:10px;letter-spacing:2px;color:var(--dim);font-family:var(--mono)}
   pre{background:var(--bg);border:1px solid var(--line2);border-radius:9px;padding:13px;white-space:pre-wrap;
-    word-break:break-word;font-size:12.5px;line-height:1.6;font-family:var(--mono);color:#cdd2e6;margin:0}
+    word-break:break-word;font-size:13px;line-height:1.6;font-family:var(--mono);color:#cdd2e6;margin:0}
   pre.style{color:var(--cyan)}
-  .cp{background:var(--bg2);color:var(--cyan);border:1px solid var(--line2);border-radius:6px;
-    padding:3px 11px;cursor:pointer;font-size:11px;font-family:var(--mono)}
+  .cp{background:var(--bg2);color:var(--cyan);border:1px solid var(--line2);border-radius:6px;padding:3px 11px;cursor:pointer;font-size:11px;font-family:var(--mono)}
   .cp:hover{border-color:var(--cyan)}
   .meters{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 2px}
-  .meter{font-family:var(--mono);font-size:11px;color:var(--dim);background:var(--bg2);
-    border:1px solid var(--line2);border-radius:7px;padding:5px 11px}
-  .meter b{color:var(--cyan)}
-  .meter.dim{border-color:transparent;color:var(--dim2)}
+  .meter{font-family:var(--mono);font-size:11px;color:var(--dim);background:var(--bg2);border:1px solid var(--line2);border-radius:7px;padding:5px 11px}
+  .meter b{color:var(--cyan)}.meter.dim{border-color:transparent;color:var(--dim2)}
   .rework{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
-  .rework input{flex:1;min-width:160px;font-size:12px;padding:9px 11px}
-  .rework select{width:auto;font-size:12px;padding:9px 11px}
-  .err{color:var(--red);background:rgba(255,93,108,.06);border:1px solid rgba(255,93,108,.25);
-    border-radius:10px;padding:13px;font-family:var(--mono);font-size:12px;margin-top:14px}
-  .hint{color:var(--dim);font-size:12px}
+  .rework input{flex:1;min-width:160px;font-size:12px;padding:9px 11px}.rework select{width:auto;font-size:12px;padding:9px 11px}
+  .err{color:var(--red);background:rgba(255,93,108,.07);border:1px solid rgba(255,93,108,.25);border-radius:10px;padding:13px;font-family:var(--mono);font-size:12px;margin-top:14px}
   code{font-family:var(--mono);color:var(--cyan)}
+  .guide{background:var(--bg2);border:1px dashed var(--line2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--dim);margin-top:10px;line-height:1.7}
+  .guide b{color:var(--cyan)}
   footer{text-align:center;color:var(--dim2);font-size:11px;margin-top:40px;font-family:var(--mono)}
 </style>
 </head>
 <body>
-<header><div class="wrap">
-  <div class="brand">
-    <div class="logo">SONGFORGE</div>
-    <div class="tag" data-i18n="tag">// AI songwriting workbench for Suno</div>
-    <div class="langsw">
-      <button class="langbtn active" data-l="en" onclick="setLang('en')">EN</button>
-      <button class="langbtn" data-l="zh" onclick="setLang('zh')">中文</button>
-    </div>
-    <span class="status" id="status">connecting…</span>
+<header><div class="wrap"><div class="brand">
+  <div class="logo">SONGFORGE</div>
+  <div class="tag" data-i18n="tag">// 給 Suno 用的 AI 作曲工作台</div>
+  <div class="spacer"></div>
+  <div class="langsw">
+    <button class="langbtn" data-l="en" onclick="setLang('en')">EN</button>
+    <button class="langbtn active" data-l="zh" onclick="setLang('zh')">中文</button>
   </div>
-  <p class="sub" data-i18n="sub">A professional writing tool for songwriters &amp; hobbyists — craft complete songs (title · style · lyrics), then export straight into Suno.</p>
-</div></header>
+  <span class="status" id="status">connecting…</span>
+</div></div></header>
 
-<div class="wrap">
+<div class="wrap"><div class="cols">
 
-  <div class="panel">
-    <div class="sec-num">01 / <span data-i18n="s_genre">GENRE</span></div>
-    <div class="sec-title" data-i18n="t_genre">Choose a sonic foundation</div>
-    <div class="chips" id="genres"></div>
-    <p class="hint" id="genreStyle" style="margin-top:10px;font-family:var(--mono);color:var(--dim2)"></p>
-
-    <div class="sec-num" style="margin-top:22px">02 / <span data-i18n="s_mode">MODE</span></div>
-    <div class="sec-title" data-i18n="t_mode">How do you want to write?</div>
-    <div class="chips" id="modes">
-      <div class="chip active" data-m="scratch" onclick="pickMode('scratch')" data-i18n="m_scratch">✶ Forge from scratch</div>
-      <div class="chip" data-m="cowrite" onclick="pickMode('cowrite')" data-i18n="m_cowrite">✎ Co-write — I have lyrics</div>
-    </div>
-
-    <div id="scratchBox">
-      <label data-i18n="l_idea">The song — what's it about? what should it feel like?</label>
-      <textarea id="idea" data-ph="ph_idea" placeholder="e.g. a slow-burn confession song about missing someone across a city at night; intimate, honest, building to a big emotional chorus"></textarea>
-    </div>
-
-    <div id="cowriteBox" style="display:none">
-      <label data-i18n="l_seed">Your lyrics — paste the lines/sections you already have (kept verbatim)</label>
-      <textarea id="seed" data-ph="ph_seed" placeholder="Paste your good lines here. e.g.&#10;&#10;I left the porch light on for a ghost&#10;Counting headlights like they're coming home&#10;&#10;AI will keep these exactly and write the rest around them."></textarea>
-      <div class="grid g2" style="margin-top:4px">
-        <div><label data-i18n="l_seedrole">These lines are my…</label>
-          <select id="seedRole">
-            <option value="auto" data-i18n="sr_auto">Let AI decide</option>
-            <option value="chorus" data-i18n="sr_chorus">Chorus / hook</option>
-            <option value="verse" data-i18n="sr_verse">Verse</option>
-            <option value="bridge" data-i18n="sr_bridge">Bridge</option>
-            <option value="opening" data-i18n="sr_opening">Opening lines</option>
-          </select>
+  <!-- LEFT: builder -->
+  <div>
+    <!-- STEP 1 -->
+    <div class="step">
+      <div class="step-h"><div class="step-n">1</div><div class="step-t" data-i18n="st1">想做什麼歌？</div>
+        <div class="step-s" data-i18n="st1s">用一句話描述就好</div></div>
+      <div class="seg" style="margin-bottom:6px">
+        <button class="active" data-m="scratch" onclick="pickMode('scratch')" data-i18n="m_scratch">✶ 從靈感生成</button>
+        <button data-m="cowrite" onclick="pickMode('cowrite')" data-i18n="m_cowrite">✎ 我有歌詞</button>
+      </div>
+      <div id="scratchBox">
+        <textarea id="idea" data-ph="ph_idea" placeholder="例：深夜雨中開車，思念一個你放手的人"></textarea>
+        <button class="btn ghost" style="margin-top:10px;flex:none" onclick="surprise()" data-i18n="surprise">🎲 給我靈感</button>
+      </div>
+      <div id="cowriteBox" style="display:none">
+        <label data-i18n="l_seed">把你已寫好的句子貼進來（會原封保留）</label>
+        <textarea id="seed" data-ph="ph_seed" placeholder="例：&#10;我為一個幽魂留著門廊的燈&#10;數著車燈彷彿它們正要回家"></textarea>
+        <div class="grid g2" style="margin-top:8px">
+          <div><label data-i18n="l_seedrole">這些是我的…</label>
+            <select id="seedRole">
+              <option value="auto" data-i18n="sr_auto">讓 AI 決定</option>
+              <option value="chorus" data-i18n="sr_chorus">副歌 / hook</option>
+              <option value="verse" data-i18n="sr_verse">主歌</option>
+              <option value="bridge" data-i18n="sr_bridge">橋段</option>
+              <option value="opening" data-i18n="sr_opening">開頭句</option>
+            </select></div>
+          <div><label data-i18n="l_extra">額外方向（選填）</label><input id="idea2" data-ph="ph_extra" placeholder="延續這個情緒 / 加個轉折"></div>
         </div>
-        <div><label data-i18n="l_extra">Extra direction (optional)</label><input id="idea2" data-ph="ph_extra" placeholder="make the rest match this mood / add a hopeful turn"></div>
       </div>
     </div>
 
-    <button class="adv-toggle" id="advT" onclick="toggleAdv()"><span class="caret">▸</span> <span data-i18n="pro">PRO CONTROLS</span> <span class="adv-sub" data-i18n="pro_sub">— instruments · tempo · key · vocal · weirdness · length</span></button>
-    <div id="adv">
-      <div class="grid g2">
-        <div><label data-i18n="l_topic">Lyrical subject / story</label><input id="topic" data-ph="ph_topic" placeholder="long-distance love, leaving a small town…"></div>
-        <div><label data-i18n="l_ref">Stylistic reference</label><input id="ref" data-ph="ph_ref" placeholder="in the style of 90s neo-soul / Frank Ocean-esque"></div>
+    <!-- STEP 2 -->
+    <div class="step">
+      <div class="step-h"><div class="step-n">2</div><div class="step-t" data-i18n="st2">選曲風</div>
+        <div class="step-s" data-i18n="st2s">點一個就好</div></div>
+      <div class="chip-grid" id="genres"></div>
+      <label data-i18n="l_ref" style="margin-top:16px">風格參考（選填）</label>
+      <input id="ref" data-ph="ph_ref" placeholder="走 90 年代 neo-soul / 像 Frank Ocean">
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step">
+      <div class="step-h"><div class="step-n">3</div><div class="step-t" data-i18n="st3">誰來唱？</div>
+        <div class="step-s" data-i18n="st3s">聲音性別 + 音色</div></div>
+      <div class="seg" id="vgSeg">
+        <button class="active" data-v="any" onclick="pickVG('any')" data-i18n="vg_any">不限</button>
+        <button data-v="female" onclick="pickVG('female')" data-i18n="vg_female">女聲</button>
+        <button data-v="male" onclick="pickVG('male')" data-i18n="vg_male">男聲</button>
       </div>
-      <div class="grid g3" style="margin-top:4px">
-        <div><label data-i18n="l_tempo">Tempo</label><input id="tempo" data-ph="ph_tempo" placeholder="92 bpm / slow ballad"></div>
-        <div><label data-i18n="l_key">Musical key</label><input id="key" placeholder="C minor"></div>
-        <div><label data-i18n="l_vocal">Vocal</label><input id="vocal" data-ph="ph_vocal" placeholder="female alto / male tenor / duet"></div>
-      </div>
-      <label data-i18n="l_voicepre">Voice presets (click to fill)</label>
+      <label data-i18n="l_voicepre" style="margin-top:14px">音色（點擊套用）</label>
       <div class="chips" id="voiceChips"></div>
-      <div class="grid g2" style="margin-top:4px">
-        <div><label data-i18n="l_instr">Instruments to feature</label><input id="instruments" data-ph="ph_instr" placeholder="nylon guitar, rhodes piano, alto sax, 808"></div>
-        <div><label data-i18n="l_excl">Exclude styles (Suno)</label><input id="exclude" data-ph="ph_excl" placeholder="edm, autotune, aggressive drums"></div>
+      <input id="vocal" data-ph="ph_vocal" placeholder="或自己打：female alto / male tenor / duet" style="margin-top:10px">
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step">
+      <div class="step-h"><div class="step-n">4</div><div class="step-t" data-i18n="st4">要什麼感覺？</div>
+        <div class="step-s" data-i18n="st4s">不確定就跳過</div></div>
+      <label data-i18n="l_mood">情緒</label>
+      <div class="chips" id="moods"></div>
+      <label data-i18n="l_speed" style="margin-top:14px">速度</label>
+      <div class="seg" id="speedSeg">
+        <button data-sp="slow" onclick="pickSpeed('slow')" data-i18n="sp_slow">🐢 慢</button>
+        <button class="active" data-sp="mid" onclick="pickSpeed('mid')" data-i18n="sp_mid">🚶 中</button>
+        <button data-sp="fast" onclick="pickSpeed('fast')" data-i18n="sp_fast">🏃 快</button>
       </div>
-      <div class="grid g2" style="margin-top:4px">
-        <div><label data-i18n="l_len">Target length</label><input id="duration" data-ph="ph_len" placeholder="2-3 min / short 90s / radio edit"></div>
-        <div><label data-i18n="l_vg">Vocal gender (Suno)</label>
-          <div class="chips" id="vgChips">
-            <div class="chip active" data-v="any" onclick="pickVG('any')" data-i18n="vg_any">Any</div>
-            <div class="chip" data-v="female" onclick="pickVG('female')" data-i18n="vg_female">Female</div>
-            <div class="chip" data-v="male" onclick="pickVG('male')" data-i18n="vg_male">Male</div>
+      <label data-i18n="l_len" style="margin-top:14px">長度</label>
+      <div class="seg" id="lenSeg">
+        <button data-ln="short" onclick="pickLen('short')" data-i18n="ln_short">短 ~1.5分</button>
+        <button class="active" data-ln="std" onclick="pickLen('std')" data-i18n="ln_std">標準 2-3分</button>
+        <button data-ln="long" onclick="pickLen('long')" data-i18n="ln_long">長 3-4分</button>
+      </div>
+    </div>
+
+    <!-- ADVANCED -->
+    <button class="adv-toggle" id="advT" onclick="toggleAdv()"><span class="caret">▸</span>
+      <span data-i18n="pro">專業微調</span> <span class="sub" data-i18n="pro_sub">— 調性 · 精準 BPM · 樂器 · 排除 · 結構 · 怪異度</span></button>
+    <div id="adv">
+      <div class="step" style="margin-top:14px;margin-bottom:0">
+        <div class="grid g3">
+          <div><label data-i18n="l_key">調性 Key</label><input id="key" placeholder="C minor"></div>
+          <div><label data-i18n="l_tempo">精準 BPM（覆寫速度）</label><input id="tempo" data-ph="ph_tempo" placeholder="92 bpm"></div>
+          <div><label data-i18n="l_lyrlang">歌詞語言</label>
+            <select id="lang">
+              <option value="english">English</option><option value="mandarin">中文</option>
+              <option value="korean">한국어</option><option value="japanese">日本語</option>
+              <option value="spanish">Spanish</option><option value="french">French</option>
+            </select></div>
+        </div>
+        <div class="grid g2" style="margin-top:4px">
+          <div><label data-i18n="l_instr">指定樂器</label><input id="instruments" data-ph="ph_instr" placeholder="尼龍吉他、電鋼琴、薩克斯、808"></div>
+          <div><label data-i18n="l_excl">排除風格</label><input id="exclude" data-ph="ph_excl" placeholder="edm、autotune、激烈鼓點"></div>
+        </div>
+        <div><label data-i18n="l_struct">歌曲結構</label><input id="structure" placeholder="Verse-Chorus-Verse-Chorus-Bridge-Chorus"></div>
+        <div class="grid g2" style="margin-top:10px">
+          <div><label><span data-i18n="l_weird">怪異度</span> — <span id="weirdVal">auto</span></label>
+            <input id="weird" type="range" min="0" max="100" value="50" oninput="sliderOn('weird','weirdVal');updatePreview()"></div>
+          <div><label><span data-i18n="l_infl">風格影響</span> — <span id="inflVal">auto</span></label>
+            <input id="infl" type="range" min="0" max="100" value="50" oninput="sliderOn('infl','inflVal');updatePreview()"></div>
+        </div>
+        <p class="hint" data-i18n="slider_hint">滑桿：拖曳即覆寫；不動 = 讓 AI 依曲風自動給合適值。</p>
+        <div class="grid g2" style="margin-top:10px">
+          <div><label data-i18n="l_batch">一次生幾首（歌單）</label><input id="count" type="number" min="1" max="20" value="5"></div>
+          <div style="display:flex;gap:20px;align-items:flex-end;padding-bottom:6px">
+            <label class="switch"><input type="checkbox" id="instr" onchange="updatePreview()"> <span data-i18n="sw_instr">純音樂</span></label>
+            <label class="switch"><input type="checkbox" id="explicit"> <span data-i18n="sw_explicit">允許露骨</span></label>
           </div>
         </div>
       </div>
-      <div class="grid g2" style="margin-top:10px">
-        <div><label><span data-i18n="l_weird">Weirdness</span> — <span id="weirdVal">auto</span></label>
-          <input id="weird" type="range" min="0" max="100" value="50" oninput="sliderOn('weird','weirdVal')" style="padding:0"></div>
-        <div><label><span data-i18n="l_infl">Style influence</span> — <span id="inflVal">auto</span></label>
-          <input id="infl" type="range" min="0" max="100" value="50" oninput="sliderOn('infl','inflVal')" style="padding:0"></div>
-      </div>
-      <p class="hint" style="margin-top:6px;color:var(--dim2)" data-i18n="slider_hint">Sliders: drag to override, leave untouched = let AI pick the right value for the genre.</p>
-      <div class="grid g2" style="margin-top:4px">
-        <div><label data-i18n="l_struct">Song structure</label><input id="structure" placeholder="Verse-Chorus-Verse-Chorus-Bridge-Chorus"></div>
-        <div><label data-i18n="l_lyrlang">Lyrics language</label>
-          <select id="lang">
-            <option value="english">English</option>
-            <option value="korean">Korean 한국어</option>
-            <option value="japanese">Japanese 日本語</option>
-            <option value="mandarin">Mandarin 中文</option>
-            <option value="spanish">Spanish</option>
-            <option value="french">French</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid g2" style="margin-top:4px">
-        <div><label data-i18n="l_batch">Playlist size (batch)</label><input id="count" type="number" min="1" max="20" value="5"></div>
-        <div style="display:flex;gap:18px;align-items:flex-end;padding-bottom:4px">
-          <label class="switch" style="margin:0"><input type="checkbox" id="instr"> <span data-i18n="sw_instr">Instrumental</span></label>
-          <label class="switch" style="margin:0"><input type="checkbox" id="explicit"> <span data-i18n="sw_explicit">Explicit OK</span></label>
-        </div>
-      </div>
-      <div style="margin-top:14px">
-        <button class="btn ghost" onclick="randomize()" data-i18n="randomize">🎲 Randomize settings</button>
-      </div>
-    </div>
-
-    <div class="actions">
-      <button class="btn primary" id="genBtn" onclick="genOne()" data-i18n="gen">⚡ Forge a song</button>
-      <button class="btn ghost" id="batchBtn" onclick="genBatch()" data-i18n="batch">▦ Forge a playlist</button>
-      <span class="count" id="count_out">0 tracks</span>
     </div>
   </div>
 
-  <div class="panel" id="resultsPanel" style="display:none">
-    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px">
-      <div><div class="sec-num">03 / <span data-i18n="s_out">OUTPUT</span></div><div class="sec-title" style="margin-bottom:0" data-i18n="t_out">Your tracks</div></div>
-      <div style="margin-left:auto;display:flex;gap:8px">
-        <button class="btn ghost" onclick="exportTxt()">⬇ .txt</button>
-        <button class="btn ghost" onclick="exportJson()">⬇ .json</button>
-        <button class="btn ghost" onclick="clearAll()" data-i18n="clear">✕ clear</button>
-      </div>
+  <!-- RIGHT: live preview + create -->
+  <div class="rail">
+    <div class="preview">
+      <h3 data-i18n="pv">SUNO 預覽</h3>
+      <div class="note" data-i18n="pv_note">這就是會送進 Suno 的內容（AI 還會精修歌詞）</div>
+      <div class="pf"><div class="k">STYLES</div><div class="v cy" id="pvStyle">—</div></div>
+      <div class="pf"><div class="k" data-i18n="pv_excl">EXCLUDE</div><div class="v" id="pvExcl">—</div></div>
+      <div class="pf"><div class="pmeters" id="pvMeters"></div></div>
     </div>
-    <div id="results" style="margin-top:6px"></div>
+    <button class="create" id="genBtn" onclick="genOne()" data-i18n="gen">⚡ 生成這首歌</button>
+    <div class="rail-row">
+      <button class="btn ghost" onclick="randomize(false)" data-i18n="randomize">🎲 全隨機</button>
+      <button class="btn ghost" onclick="randomize(true)" data-i18n="randomize_keep">🎲 鎖曲風隨機</button>
+    </div>
+    <div class="rail-row">
+      <button class="btn ghost" id="batchBtn" onclick="genBatch()" data-i18n="batch">▦ 生成歌單</button>
+    </div>
+    <span class="status" id="count_out" style="text-align:center">0 tracks</span>
   </div>
 
-  <footer data-i18n="foot">SONGFORGE · runs locally · your lyrics never leave your machine except to your chosen LLM backend</footer>
+</div>
+
+  <!-- OUTPUT -->
+  <div id="resultsPanel" style="display:none;margin-top:8px">
+    <div class="step">
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px">
+        <div class="step-t" data-i18n="t_out">🎧 你的歌曲</div>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn ghost" style="flex:none" onclick="exportTxt()">⬇ .txt</button>
+          <button class="btn ghost" style="flex:none" onclick="exportJson()">⬇ .json</button>
+          <button class="btn ghost" style="flex:none" onclick="clearAll()" data-i18n="clear">✕ 清除</button>
+        </div>
+      </div>
+      <div class="guide" data-i18n="guide">在 Suno 點 <b>Create → Advanced</b>：把 <b>STYLES</b> 貼到 Styles 欄、<b>LYRICS</b> 貼到 Lyrics 欄、<b>EXCLUDE</b> 貼到 Exclude styles，再到 More Options 設 Vocal Gender / Weirdness / Style Influence。</div>
+      <div id="results" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <footer data-i18n="foot">SONGFORGE · 本機運作 · 歌詞只送往你選的 LLM backend，不外流</footer>
 </div>
 
 <script>
 const API = location.protocol.startsWith('http') ? '' : 'http://localhost:5001';
 
 const GENRES = {
-  midnight_rnb:{label:'Midnight R&B', style:'smooth r&b, midnight city vibe, soft breathy female vocals, lo-fi drums, warm rhodes piano, deep mellow bass, vinyl crackle, rainy night, 85 bpm, dreamy reverb'},
-  groove_pop:{label:'Groove Pop', style:'groove pop, retro funk, laid-back female vocals, punchy bassline, clean electric guitar, vintage synth, head-nodding groove, 95 bpm, polished'},
-  rainy_jazz:{label:'Rainy Jazz', style:'jazz lounge, rainy mood, soft female jazz vocals, brushed drums, upright bass, mellow saxophone, warm piano, intimate club, 75 bpm'},
-  synthwave:{label:'Synthwave', style:'chillwave, synthwave, dreamy ethereal female vocals, analog synth pads, retro drum machine, neon night drive, 80s nostalgia, 90 bpm, lush reverb'},
-  acoustic:{label:'Soft Acoustic', style:'indie folk acoustic, gentle female vocals, fingerpicked guitar, soft piano, morning sunlight, organic warm, healing, 80 bpm'},
-  lofi:{label:'Lo-fi Focus', style:'lo-fi hip hop, mellow jazzy chords, dusty drums, warm sub bass, tape saturation, calm focus, 80 bpm'},
-  citypop:{label:'City Pop', style:'japanese city pop, bright female vocals, funky bass, glossy synths, slap guitar, 80s tokyo nightlife, upbeat, 110 bpm'},
-  dreampop:{label:'Dream Pop', style:'dream pop, shoegaze, hazy reverb female vocals, washed-out guitars, lush pads, ethereal, 100 bpm'},
-  trap_soul:{label:'Trap Soul', style:'trap soul, moody vocals, 808 bass, crisp hi-hats, atmospheric keys, late-night, 70 bpm'},
-  bossa:{label:'Bossa Nova', style:'bossa nova, soft brazilian female vocals, nylon guitar, gentle shaker, warm jazz chords, beachside cafe, 90 bpm'},
-  ballad:{label:'Piano Ballad', style:'emotional piano ballad, powerful expressive vocals, swelling strings, intimate to anthemic dynamics, cinematic, 68 bpm'},
-  indie_rock:{label:'Indie Rock', style:'indie rock, jangly guitars, driving drums, warm bass, earnest vocals, anthemic chorus, 128 bpm'},
-  edm_chill:{label:'Chill EDM', style:'melodic chill house, soft female topline, warm plucks, deep bass, festival sunset, smooth drop, 118 bpm'},
-  epic:{label:'Epic Cinematic', style:'epic cinematic, orchestral, soaring choir, powerful strings, big percussion, heroic trailer music, 120 bpm'},
+  midnight_rnb:{label:'Midnight R&B',emo:'🌃',style:'smooth r&b, midnight city vibe, soft breathy vocals, lo-fi drums, warm rhodes piano, deep mellow bass, vinyl crackle, rainy night, 85 bpm, dreamy reverb'},
+  groove_pop:{label:'Groove Pop',emo:'🪩',style:'groove pop, retro funk, laid-back vocals, punchy bassline, clean electric guitar, vintage synth, head-nodding groove, 95 bpm, polished'},
+  rainy_jazz:{label:'Rainy Jazz',emo:'🌧️',style:'jazz lounge, rainy mood, soft jazz vocals, brushed drums, upright bass, mellow saxophone, warm piano, intimate club, 75 bpm'},
+  synthwave:{label:'Synthwave',emo:'🌆',style:'chillwave, synthwave, dreamy ethereal vocals, analog synth pads, retro drum machine, neon night drive, 80s nostalgia, 90 bpm, lush reverb'},
+  acoustic:{label:'Soft Acoustic',emo:'☀️',style:'indie folk acoustic, gentle vocals, fingerpicked guitar, soft piano, morning sunlight, organic warm, healing, 80 bpm'},
+  lofi:{label:'Lo-fi Focus',emo:'🎧',style:'lo-fi hip hop, mellow jazzy chords, dusty drums, warm sub bass, tape saturation, calm focus, 80 bpm'},
+  citypop:{label:'City Pop',emo:'🏙️',style:'japanese city pop, bright vocals, funky bass, glossy synths, slap guitar, 80s tokyo nightlife, upbeat, 110 bpm'},
+  dreampop:{label:'Dream Pop',emo:'💗',style:'dream pop, shoegaze, hazy reverb vocals, washed-out guitars, lush pads, ethereal, 100 bpm'},
+  trap_soul:{label:'Trap Soul',emo:'🌙',style:'trap soul, moody vocals, 808 bass, crisp hi-hats, atmospheric keys, late-night, 70 bpm'},
+  bossa:{label:'Bossa Nova',emo:'🌴',style:'bossa nova, soft brazilian vocals, nylon guitar, gentle shaker, warm jazz chords, beachside cafe, 90 bpm'},
+  ballad:{label:'Piano Ballad',emo:'🎹',style:'emotional piano ballad, powerful expressive vocals, swelling strings, intimate to anthemic, cinematic, 68 bpm'},
+  indie_rock:{label:'Indie Rock',emo:'🎸',style:'indie rock, jangly guitars, driving drums, warm bass, earnest vocals, anthemic chorus, 128 bpm'},
+  edm_chill:{label:'Chill EDM',emo:'🌊',style:'melodic chill house, soft topline, warm plucks, deep bass, festival sunset, smooth drop, 118 bpm'},
+  epic:{label:'Epic',emo:'⚔️',style:'epic cinematic, orchestral, soaring choir, powerful strings, big percussion, heroic trailer, 120 bpm'},
 };
+const VOICES=[
+  {en:'Smoky raspy',zh:'低沈菸酒嗓',d:'low raspy smoky husky voice, whiskey-soaked gravelly tone'},
+  {en:'Sweet',zh:'甜美',d:'sweet bright airy female vocals, cute youthful tone'},
+  {en:'Rich female',zh:'渾厚女聲',d:'rich powerful full-bodied female vocals, soulful belt'},
+  {en:'Rich male',zh:'渾厚男聲',d:'deep resonant rich baritone male vocals, warm chest voice'},
+  {en:'Ethereal',zh:'空靈',d:'ethereal breathy airy female vocals, dreamy reverb'},
+  {en:'Sultry jazz',zh:'慵懶爵士',d:'lazy sultry jazzy vocals, smoky lounge tone'},
+  {en:'Bright tenor',zh:'清亮男聲',d:'bright clear youthful male tenor, emotive'},
+  {en:'Gritty rock',zh:'沙啞搖滾',d:'gritty raspy rock vocals, raw powerful edge'},
+];
+const MOODS=[
+  {en:'Healing',zh:'療癒',emo:'🌿',d:'soothing healing calm'},
+  {en:'Emotional',zh:'情緒',emo:'💧',d:'emotional melancholic heartfelt'},
+  {en:'Happy',zh:'快樂',emo:'☀️',d:'happy upbeat feel-good'},
+  {en:'Dark',zh:'黑暗',emo:'🌑',d:'dark moody brooding'},
+  {en:'Romantic',zh:'浪漫',emo:'💞',d:'romantic tender intimate'},
+  {en:'Sultry',zh:'性感',emo:'🔥',d:'sultry sensual seductive'},
+  {en:'Epic',zh:'史詩',emo:'⚡',d:'epic powerful anthemic'},
+  {en:'Nostalgic',zh:'懷舊',emo:'📼',d:'nostalgic wistful retro'},
+];
+const SPEED={slow:'72 bpm slow',mid:'95 bpm mid-tempo',fast:'124 bpm upbeat'};
+const LEN={short:'short ~90s, 3-4 sections',std:'2-3 min, 5 sections',long:'3-4 min, 6-7 sections'};
 
-let ACTIVE='midnight_rnb', SONGS=[], MODE='scratch', VG='any';
+let LANG='zh', SONGS=[], MODE='scratch';
+let SEL={genre:'midnight_rnb', vg:'any', voice:'', mood:'', speed:'mid', len:'std'};
 let weirdSet=false, inflSet=false;
+const $=id=>document.getElementById(id);
+const val=id=>($(id)?$(id).value.trim():'');
 
-function pickGenre(k){ACTIVE=k;
-  document.querySelectorAll('#genres .chip').forEach(b=>b.classList.toggle('active',b.dataset.k===k));
-  document.getElementById('genreStyle').textContent='↳ '+GENRES[k].style;}
-function pickMode(m){MODE=m;
-  document.querySelectorAll('#modes .chip').forEach(b=>b.classList.toggle('active',b.dataset.m===m));
-  document.getElementById('scratchBox').style.display=m==='scratch'?'block':'none';
-  document.getElementById('cowriteBox').style.display=m==='cowrite'?'block':'none';
-  document.getElementById('genBtn').textContent=I18N[LANG][m==='cowrite'?'gen_cowrite':'gen'];}
-function toggleAdv(){document.getElementById('adv').classList.toggle('open');document.getElementById('advT').classList.toggle('open');}
-function pickVG(v){VG=v;document.querySelectorAll('#vgChips .chip').forEach(b=>b.classList.toggle('active',b.dataset.v===v));}
-function sliderOn(id,lbl){const val=document.getElementById(id).value;document.getElementById(lbl).textContent=val+'%';
-  if(id==='weird')weirdSet=true;else inflSet=true;}
+// ── selections ──
+function pickMode(m){MODE=m;document.querySelectorAll('#scratchBox,#cowriteBox');
+  document.querySelectorAll('.seg [data-m]').forEach(b=>b.classList.toggle('active',b.dataset.m===m));
+  $('scratchBox').style.display=m==='scratch'?'block':'none';
+  $('cowriteBox').style.display=m==='cowrite'?'block':'none';
+  $('genBtn').textContent=I18N[LANG][m==='cowrite'?'gen_cowrite':'gen'];}
+function pickGenre(k){SEL.genre=k;
+  document.querySelectorAll('#genres .chip').forEach(b=>b.classList.toggle('active',b.dataset.k===k));updatePreview();}
+function pickVG(v){SEL.vg=v;document.querySelectorAll('#vgSeg [data-v]').forEach(b=>b.classList.toggle('active',b.dataset.v===v));updatePreview();}
+function pickMood(m){SEL.mood=(SEL.mood===m?'':m);
+  document.querySelectorAll('#moods .chip').forEach(b=>b.classList.toggle('active',b.dataset.md===SEL.mood));updatePreview();}
+function pickSpeed(s){SEL.speed=s;document.querySelectorAll('#speedSeg [data-sp]').forEach(b=>b.classList.toggle('active',b.dataset.sp===s));updatePreview();}
+function pickLen(l){SEL.len=l;document.querySelectorAll('#lenSeg [data-ln]').forEach(b=>b.classList.toggle('active',b.dataset.ln===l));}
+function fillVoice(d){$('vocal').value=d;updatePreview();}
+function toggleAdv(){$('adv').classList.toggle('open');$('advT').classList.toggle('open');}
+function sliderOn(id,lbl){$(lbl).textContent=$(id).value+'%';if(id==='weird')weirdSet=true;else inflSet=true;}
+
+// ── live preview (client-side approximation of the Styles string) ──
+function composeStyle(){
+  let parts=[GENRES[SEL.genre].style];
+  const m=MOODS.find(x=>x.zh===SEL.mood||x.en===SEL.mood); if(m)parts.push(m.d);
+  const voice=val('vocal'); if(voice)parts.push(voice);
+  if(SEL.vg!=='any')parts.push(SEL.vg+' vocals');
+  const tempo=val('tempo')||SPEED[SEL.speed]; if(tempo)parts.push(tempo);
+  const instr=val('instruments'); if(instr)parts.push(instr);
+  const ref=val('ref'); if(ref)parts.push(ref);
+  if($('instr')&&$('instr').checked)parts.unshift('[Instrumental] no vocals');
+  return parts.join(', ');
+}
+function updatePreview(){
+  $('pvStyle').textContent=composeStyle();
+  $('pvExcl').textContent=val('exclude')||'—';
+  const w=weirdSet?$('weird').value+'%':'auto', i=inflSet?$('infl').value+'%':'auto';
+  $('pvMeters').innerHTML=`<span>Vocal: <b>${SEL.vg}</b></span><span>Weird: <b>${w}</b></span><span>Influence: <b>${i}</b></span>`;
+}
 
 function payload(extra){
-  const v=id=>document.getElementById(id).value.trim();
+  const moodObj=MOODS.find(x=>x.zh===SEL.mood||x.en===SEL.mood);
+  let idea=val('idea'); if(moodObj)idea=(idea?idea+'; ':'')+moodObj.d+' mood';
   return Object.assign({
-    idea:v('idea'), base_style:GENRES[ACTIVE].style,
-    instrumental:document.getElementById('instr').checked,
-    explicit:document.getElementById('explicit').checked,
-    language:v('lang')||'english',
-    tempo:v('tempo'), musical_key:v('key'), vocal:v('vocal'),
-    structure:v('structure'), reference:v('ref'), theme_topic:v('topic'),
-    duration:v('duration'),
-    instruments:v('instruments'), exclude_styles:v('exclude'), vocal_gender:VG,
-    weirdness: weirdSet?parseInt(document.getElementById('weird').value):null,
-    style_influence: inflSet?parseInt(document.getElementById('infl').value):null,
+    idea, base_style:GENRES[SEL.genre].style,
+    instrumental:$('instr').checked, explicit:$('explicit').checked, language:val('lang')||'english',
+    tempo:val('tempo')||SPEED[SEL.speed], musical_key:val('key'),
+    vocal:val('vocal'), vocal_gender:SEL.vg,
+    structure:val('structure'), reference:val('ref'), theme_topic:'',
+    instruments:val('instruments'), exclude_styles:val('exclude'),
+    duration:LEN[SEL.len],
+    weirdness: weirdSet?parseInt($('weird').value):null,
+    style_influence: inflSet?parseInt($('infl').value):null,
   },extra||{});
 }
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 
 function songCard(s,i){
-  const sid='s'+i;
-  const vg=(s.vocal_gender||'any'), w=(s.weirdness??50), inf=(s.style_influence??50);
-  return `<div class="song" data-i="${i}">
-    <div class="song-h"><span class="t">${esc(s.title)}</span><span class="g">// ${GENRES[ACTIVE].label}</span></div>
-    <div class="fh"><span>STYLES → Suno “Styles”</span><button class="cp" onclick="copy('${sid}_s',this)">copy</button></div>
-    <pre id="${sid}_s" class="style">${esc(s.style)}</pre>
-    ${s.exclude_styles?`<div class="fh"><span>EXCLUDE → Suno “Exclude styles”</span><button class="cp" onclick="copy('${sid}_x',this)">copy</button></div>
-    <pre id="${sid}_x" class="style">${esc(s.exclude_styles)}</pre>`:''}
-    <div class="meters">
-      <span class="meter">Vocal: <b>${esc(vg)}</b></span>
-      <span class="meter">Weirdness: <b>${w}%</b></span>
-      <span class="meter">Style influence: <b>${inf}%</b></span>
-      <span class="meter dim">↳ set these in Suno “More Options”</span>
-    </div>
-    <div class="fh"><span>LYRICS → Suno “Lyrics”</span><button class="cp" onclick="copy('${sid}_l',this)">copy</button></div>
-    <pre id="${sid}_l">${esc(s.lyrics)}</pre>
-    <div class="rework">
-      <select id="${sid}_sec">
-        <option>Chorus</option><option>Verse</option><option>Verse 2</option>
-        <option>Pre-Chorus</option><option>Bridge</option><option>Intro</option><option>Outro</option>
-      </select>
-      <input id="${sid}_note" placeholder="how to change it — e.g. more hopeful, add a metaphor">
-      <button class="btn ghost" style="padding:9px 14px" onclick="reworkSong(${i})">↻ rework section</button>
-    </div>
-  </div>`;
+  const sid='s'+i, vg=(s.vocal_gender||'any'), w=(s.weirdness??50), inf=(s.style_influence??50);
+  return `<div class="song"><div class="song-h"><span class="t">${esc(s.title)}</span><span class="g">// ${GENRES[SEL.genre].label}</span></div>
+    <div class="fh"><span>STYLES</span><button class="cp" onclick="copy('${sid}_s',this)">copy</button></div><pre id="${sid}_s" class="style">${esc(s.style)}</pre>
+    ${s.exclude_styles?`<div class="fh"><span>EXCLUDE</span><button class="cp" onclick="copy('${sid}_x',this)">copy</button></div><pre id="${sid}_x" class="style">${esc(s.exclude_styles)}</pre>`:''}
+    <div class="meters"><span class="meter">Vocal: <b>${esc(vg)}</b></span><span class="meter">Weirdness: <b>${w}%</b></span><span class="meter">Style influence: <b>${inf}%</b></span></div>
+    <div class="fh"><span>LYRICS</span><button class="cp" onclick="copy('${sid}_l',this)">copy</button></div><pre id="${sid}_l">${esc(s.lyrics)}</pre>
+    <div class="rework"><select id="${sid}_sec"><option>Chorus</option><option>Verse</option><option>Verse 2</option><option>Pre-Chorus</option><option>Bridge</option><option>Intro</option><option>Outro</option></select>
+      <input id="${sid}_note" data-ph="ph_rework" placeholder="${I18N[LANG].ph_rework}">
+      <button class="btn ghost" style="flex:none;padding:9px 14px" onclick="reworkSong(${i})" data-i18n="rework">↻ 重寫此段</button></div></div>`;
 }
-function render(){
-  document.getElementById('results').innerHTML=SONGS.map(songCard).join('');
-  document.getElementById('resultsPanel').style.display=SONGS.length?'block':'none';
-  document.getElementById('count_out').textContent=SONGS.length+' tracks';
-}
-function copy(id,b){navigator.clipboard.writeText(document.getElementById(id).innerText);
-  const o=b.textContent;b.textContent='✓ copied';setTimeout(()=>b.textContent=o,1200);}
-function showErr(m){document.getElementById('resultsPanel').style.display='block';
-  document.getElementById('results').insertAdjacentHTML('afterbegin',
-    `<div class="err">✕ ${esc(m)}<br><span class="hint">Backend running? &nbsp;<code>uvicorn server:app --port 5001</code></span></div>`);}
+function render(){$('results').innerHTML=SONGS.map(songCard).join('');
+  $('resultsPanel').style.display=SONGS.length?'block':'none';$('count_out').textContent=SONGS.length+' tracks';}
+function copy(id,b){navigator.clipboard.writeText($(id).innerText);const o=b.textContent;b.textContent='✓';setTimeout(()=>b.textContent=o,1100);}
+function showErr(m){$('resultsPanel').style.display='block';
+  $('results').insertAdjacentHTML('afterbegin',`<div class="err">✕ ${esc(m)}</div>`);}
+async function post(path,body){const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){const e=await r.json().catch(()=>({detail:r.statusText}));throw new Error(e.detail||r.statusText);}return r.json();}
 
-async function post(path,body){
-  const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!r.ok){const e=await r.json().catch(()=>({detail:r.statusText}));throw new Error(e.detail||r.statusText);}
-  return r.json();
-}
-async function genOne(){
-  const b=document.getElementById('genBtn');const orig=b.textContent;
-  let path='/api/suno', body=payload();
-  const T=I18N[LANG];
-  if(MODE==='cowrite'){
-    const seed=document.getElementById('seed').value.trim();
-    if(!seed){alert(T.a_seed);return;}
-    path='/api/suno/complete';
-    body=payload({seed_lyrics:seed, seed_role:document.getElementById('seedRole').value, idea:document.getElementById('idea2').value.trim()});
-  } else if(!document.getElementById('idea').value.trim()){alert(T.a_idea);return;}
+async function genOne(){const b=$('genBtn'),orig=b.textContent,T=I18N[LANG];let path='/api/suno',body=payload();
+  if(MODE==='cowrite'){const seed=val('seed');if(!seed){alert(T.a_seed);return;}path='/api/suno/complete';
+    body=payload({seed_lyrics:seed,seed_role:$('seedRole').value,idea:val('idea2')});}
+  else if(!val('idea')){alert(T.a_idea);return;}
   b.disabled=true;b.textContent=T.writing;
-  try{SONGS.unshift(await post(path,body));render();}catch(e){showErr(e.message);}
-  finally{b.disabled=false;b.textContent=orig;}
-}
-async function genBatch(){
-  const T=I18N[LANG];
-  if(!document.getElementById('idea').value.trim()){alert(T.a_idea);return;}
-  const n=Math.max(1,Math.min(20,parseInt(document.getElementById('count').value)||5));
-  const b=document.getElementById('batchBtn');b.disabled=true;b.textContent=T.writingN.replace('{n}',n);
-  try{const d=await post('/api/suno/batch',payload({count:n}));SONGS=d.songs.concat(SONGS);render();}
-  catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent=T.batch;}
-}
-async function reworkSong(i){
-  const sid='s'+i, s=SONGS[i];
-  const section=document.getElementById(sid+'_sec').value;
-  const note=document.getElementById(sid+'_note').value.trim();
-  try{
-    const d=await post('/api/suno/rework',{title:s.title,style:s.style,lyrics:s.lyrics,section,note,language:document.getElementById('lang').value});
-    SONGS[i]=d;render();
-  }catch(e){showErr(e.message);}
-}
+  try{SONGS.unshift(await post(path,body));render();}catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent=orig;}}
+async function genBatch(){const T=I18N[LANG];if(!val('idea')){alert(T.a_idea);return;}
+  const n=Math.max(1,Math.min(20,parseInt($('count').value)||5));const b=$('batchBtn');b.disabled=true;b.textContent=T.writingN.replace('{n}',n);
+  try{const d=await post('/api/suno/batch',payload({count:n}));SONGS=d.songs.concat(SONGS);render();}catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent=T.batch;}}
+async function reworkSong(i){const sid='s'+i,s=SONGS[i];
+  try{const d=await post('/api/suno/rework',{title:s.title,style:s.style,lyrics:s.lyrics,section:$(sid+'_sec').value,note:val(sid+'_note'),language:val('lang')});SONGS[i]=d;render();}catch(e){showErr(e.message);}}
 function clearAll(){SONGS=[];render();}
-function exportTxt(){const t=SONGS.map((s,i)=>`### ${i+1}. ${s.title}\n\n[STYLES]\n${s.style}\n\n[EXCLUDE STYLES]\n${s.exclude_styles||'-'}\n\n[VOCAL] ${s.vocal_gender||'any'}   [WEIRDNESS] ${s.weirdness??50}%   [STYLE INFLUENCE] ${s.style_influence??50}%\n\n[LYRICS]\n${s.lyrics}\n`).join('\n'+'='.repeat(50)+'\n\n');dl(t,'songs.txt','text/plain');}
+function exportTxt(){const t=SONGS.map((s,i)=>`### ${i+1}. ${s.title}\n\n[STYLES]\n${s.style}\n\n[EXCLUDE]\n${s.exclude_styles||'-'}\n\n[VOCAL] ${s.vocal_gender||'any'}  [WEIRD] ${s.weirdness??50}%  [INFLUENCE] ${s.style_influence??50}%\n\n[LYRICS]\n${s.lyrics}\n`).join('\n'+'='.repeat(50)+'\n\n');dl(t,'songs.txt','text/plain');}
 function exportJson(){dl(JSON.stringify(SONGS,null,2),'songs.json','application/json');}
 function dl(c,n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();}
 
-async function probe(){const s=document.getElementById('status');
-  try{const r=await fetch(API+'/api/health',{signal:AbortSignal.timeout(2500)});
-    if(r.ok){const d=await r.json();s.textContent='● '+d.backend+' · '+d.model;s.className='status on';return;}}catch(e){}
-  s.textContent='● backend offline';s.className='status off';}
+// surprise / randomize
+const IDEAS={en:['a late-night drive in the rain, missing someone you let go','falling for a stranger under city lights','leaving your hometown, hopeful but scared','a slow Sunday morning with someone you love','dancing alone at 2am to forget a bad week','a long-distance love kept alive by late calls','looking back on a summer that changed everything','finding peace after heartbreak','a confession you never had courage to say','chasing a dream against all odds'],
+  zh:['深夜雨中開車，思念一個你放手的人','在城市燈火下對陌生人心動','離開家鄉，既期待又害怕','與所愛之人的慵懶週日早晨','凌晨兩點獨自跳舞忘掉糟糕的一週','靠深夜通話維繫的遠距離戀愛','回望一個改變一切的夏天','心碎後找回平靜','一句你始終沒勇氣說出口的告白','不顧一切追逐一個夢']};
+function rpick(a){return a[Math.floor(Math.random()*a.length)];}
+function surprise(){$('idea').value=rpick(IDEAS[LANG]||IDEAS.zh);}
+function randomize(keepGenre){
+  if(!keepGenre) pickGenre(rpick(Object.keys(GENRES)));
+  pickVG(rpick(['any','female','male']));
+  const v=rpick(VOICES); fillVoice(v.d);
+  pickMood(rpick(MOODS).zh);
+  pickSpeed(rpick(['slow','mid','fast']));
+  pickLen(rpick(['short','std','long']));
+  // also roll the pro sliders
+  const w=Math.floor(Math.random()*101), i=20+Math.floor(Math.random()*71);
+  $('weird').value=w;sliderOn('weird','weirdVal');
+  $('infl').value=i;sliderOn('infl','inflVal');
+  if(MODE!=='cowrite') surprise();
+  updatePreview();
+}
 
 // ── i18n ──
 const I18N={
-  en:{tag:'// AI songwriting workbench for Suno',
-    sub:'A professional writing tool for songwriters & hobbyists — craft complete songs (title · style · lyrics), then export straight into Suno.',
-    s_genre:'GENRE',t_genre:'Choose a sonic foundation',s_mode:'MODE',t_mode:'How do you want to write?',
-    m_scratch:'✶ Forge from scratch',m_cowrite:'✎ Co-write — I have lyrics',
-    l_idea:"The song — what's it about? what should it feel like?",
-    ph_idea:'e.g. a slow-burn confession song about missing someone across a city at night; intimate, honest, building to a big emotional chorus',
-    l_seed:'Your lyrics — paste the lines/sections you already have (kept verbatim)',
-    ph_seed:"Paste your good lines here. e.g.\n\nI left the porch light on for a ghost\nCounting headlights like they're coming home\n\nAI will keep these exactly and write the rest around them.",
-    l_seedrole:'These lines are my…',sr_auto:'Let AI decide',sr_chorus:'Chorus / hook',sr_verse:'Verse',sr_bridge:'Bridge',sr_opening:'Opening lines',
-    l_extra:'Extra direction (optional)',ph_extra:'make the rest match this mood / add a hopeful turn',
-    pro:'PRO CONTROLS',pro_sub:'— instruments · tempo · key · vocal · weirdness · length',
-    l_topic:'Lyrical subject / story',ph_topic:'long-distance love, leaving a small town…',
-    l_ref:'Stylistic reference',ph_ref:'in the style of 90s neo-soul / Frank Ocean-esque',
-    l_tempo:'Tempo',ph_tempo:'92 bpm / slow ballad',l_key:'Musical key',l_vocal:'Vocal',ph_vocal:'female alto / male tenor / duet',
-    l_instr:'Instruments to feature',ph_instr:'nylon guitar, rhodes piano, alto sax, 808',
-    l_excl:'Exclude styles (Suno)',ph_excl:'edm, autotune, aggressive drums',
-    l_len:'Target length',ph_len:'2-3 min / short 90s / radio edit',l_vg:'Vocal gender (Suno)',vg_any:'Any',vg_female:'Female',vg_male:'Male',
-    l_weird:'Weirdness',l_infl:'Style influence',
-    slider_hint:'Sliders: drag to override, leave untouched = let AI pick the right value for the genre.',
-    l_struct:'Song structure',l_lyrlang:'Lyrics language',l_batch:'Playlist size (batch)',
-    sw_instr:'Instrumental',sw_explicit:'Explicit OK',randomize:'🎲 Randomize settings',l_voicepre:'Voice presets (click to fill)',
-    a_idea:'Type what the song is about in the “the song” box first.',a_seed:'Paste your lyrics first.',writing:'⏳ writing… (~30-60s)',writingN:'⏳ writing {n}…',gen:'⚡ Forge a song',gen_cowrite:'✎ Finish my song',batch:'▦ Forge a playlist',s_out:'OUTPUT',t_out:'Your tracks',clear:'✕ clear',
-    foot:'SONGFORGE · runs locally · your lyrics never leave your machine except to your chosen LLM backend'},
-  zh:{tag:'// 給 Suno 用的 AI 作曲工作台',
-    sub:'給歌手與創作玩家的專業寫歌工具 — 做出完整歌曲（歌名 · 風格 · 歌詞），直接匯入 Suno。',
-    s_genre:'曲風',t_genre:'選一個聲音基底',s_mode:'模式',t_mode:'你想怎麼寫？',
-    m_scratch:'✶ 從零生成',m_cowrite:'✎ 共寫 — 我有歌詞',
-    l_idea:'這首歌 — 想講什麼？要什麼感覺？',
-    ph_idea:'例：深夜開車穿越城市、思念某人的慢板告白歌；私密、真誠、副歌情緒堆疊',
-    l_seed:'你的歌詞 — 貼上你已寫好的句子／段落（原封保留）',
-    ph_seed:'把你的好句子貼這裡，例：\n\n我為一個幽魂留著門廊的燈\n數著車燈彷彿它們正要回家\n\nAI 會原封保留這些，再把整首歌補完。',
-    l_seedrole:'這些句子是我的…',sr_auto:'讓 AI 決定',sr_chorus:'副歌 / hook',sr_verse:'主歌',sr_bridge:'橋段',sr_opening:'開頭句',
-    l_extra:'額外方向（選填）',ph_extra:'讓其餘段落延續這個情緒 / 加個轉折',
-    pro:'專業控制',pro_sub:'— 樂器 · 速度 · 調性 · 聲線 · 怪異度 · 長度',
-    l_topic:'歌詞主題 / 故事',ph_topic:'遠距離戀愛、離開小鎮…',
-    l_ref:'風格參考',ph_ref:'走 90 年代 neo-soul / Frank Ocean 風',
-    l_tempo:'速度 Tempo',ph_tempo:'92 bpm / 慢板抒情',l_key:'調性 Key',l_vocal:'聲線',ph_vocal:'女中音 / 男高音 / 對唱',
-    l_instr:'指定樂器',ph_instr:'尼龍吉他、電鋼琴、中音薩克斯、808',
-    l_excl:'排除風格（Suno）',ph_excl:'edm、autotune、激烈鼓點',
-    l_len:'目標長度',ph_len:'2-3 分鐘 / 短 90 秒 / 電台版',l_vg:'人聲性別（Suno）',vg_any:'不限',vg_female:'女',vg_male:'男',
-    l_weird:'怪異度 Weirdness',l_infl:'風格影響 Style influence',
-    slider_hint:'滑桿：拖曳即覆寫；不動 = 讓 AI 依曲風自動給合適值。',
-    l_struct:'歌曲結構',l_lyrlang:'歌詞語言',l_batch:'歌單數量（批量）',
-    sw_instr:'純音樂',sw_explicit:'允許露骨',randomize:'🎲 隨機數值',l_voicepre:'聲線預設（點擊填入）',
-    a_idea:'請先在「這首歌」輸入框寫下這首歌想講什麼。',a_seed:'請先貼上你的歌詞。',writing:'⏳ 生成中…（約 30-60 秒）',writingN:'⏳ 生成 {n} 首中…',gen:'⚡ 生成一首',gen_cowrite:'✎ 完成我的歌',batch:'▦ 生成歌單',s_out:'輸出',t_out:'你的歌曲',clear:'✕ 清除',
-    foot:'SONGFORGE · 本機運作 · 歌詞只送往你選的 LLM backend，不外流'},
+ en:{tag:'// AI songwriting workbench for Suno',
+  st1:'What song do you want?',st1s:'one sentence is enough',m_scratch:'✶ From an idea',m_cowrite:'✎ I have lyrics',
+  ph_idea:'e.g. a late-night drive in the rain, missing someone you let go',surprise:'🎲 Give me an idea',
+  l_seed:'Paste the lines you already wrote (kept verbatim)',ph_seed:'e.g.\nI left the porch light on for a ghost\nCounting headlights like they\'re coming home',
+  l_seedrole:'These lines are my…',sr_auto:'Let AI decide',sr_chorus:'Chorus / hook',sr_verse:'Verse',sr_bridge:'Bridge',sr_opening:'Opening lines',
+  l_extra:'Extra direction (optional)',ph_extra:'match this mood / add a hopeful turn',
+  st2:'Pick a genre',st2s:'just tap one',l_ref:'Style reference (optional)',ph_ref:'90s neo-soul / Frank Ocean-esque',
+  st3:'Who sings it?',st3s:'gender + timbre',vg_any:'Any',vg_female:'Female',vg_male:'Male',
+  l_voicepre:'Timbre (tap to apply)',ph_vocal:'or type: female alto / male tenor / duet',
+  st4:'What should it feel like?',st4s:'skip if unsure',l_mood:'Mood',l_speed:'Speed',
+  sp_slow:'🐢 Slow',sp_mid:'🚶 Medium',sp_fast:'🏃 Fast',l_len:'Length',ln_short:'Short ~1.5m',ln_std:'Standard 2-3m',ln_long:'Long 3-4m',
+  pro:'Pro fine-tuning',pro_sub:'— key · exact BPM · instruments · exclude · structure · weirdness',
+  l_key:'Key',l_tempo:'Exact BPM (overrides speed)',ph_tempo:'92 bpm',l_lyrlang:'Lyrics language',
+  l_instr:'Instruments',ph_instr:'nylon guitar, rhodes, sax, 808',l_excl:'Exclude styles',ph_excl:'edm, autotune, aggressive drums',
+  l_struct:'Song structure',l_weird:'Weirdness',l_infl:'Style influence',
+  slider_hint:'Sliders: drag to override, untouched = AI picks per genre.',l_batch:'Songs per batch',sw_instr:'Instrumental',sw_explicit:'Explicit OK',
+  pv:'SUNO PREVIEW',pv_note:'this is what goes into Suno (AI still refines the lyrics)',pv_excl:'EXCLUDE',
+  gen:'⚡ Create this song',gen_cowrite:'✎ Finish my song',batch:'▦ Make a playlist',randomize:'🎲 All random',randomize_keep:'🎲 Keep genre, roll rest',
+  t_out:'🎧 Your songs',clear:'✕ clear',rework:'↻ rework section',ph_rework:'how to change it — e.g. more hopeful',
+  guide:'In Suno, open <b>Create → Advanced</b>: paste <b>STYLES</b> into Styles, <b>LYRICS</b> into Lyrics, <b>EXCLUDE</b> into Exclude styles, then set Vocal Gender / Weirdness / Style Influence in More Options.',
+  foot:'SONGFORGE · runs locally · lyrics only go to your chosen LLM backend',
+  a_idea:'Type what the song is about first (step 1).',a_seed:'Paste your lyrics first.',writing:'⏳ writing… (~30-60s)',writingN:'⏳ writing {n}…'},
+ zh:{tag:'// 給 Suno 用的 AI 作曲工作台',
+  st1:'想做什麼歌？',st1s:'一句話就好',m_scratch:'✶ 從靈感生成',m_cowrite:'✎ 我有歌詞',
+  ph_idea:'例：深夜雨中開車，思念一個你放手的人',surprise:'🎲 給我靈感',
+  l_seed:'把你已寫好的句子貼進來（會原封保留）',ph_seed:'例：\n我為一個幽魂留著門廊的燈\n數著車燈彷彿它們正要回家',
+  l_seedrole:'這些是我的…',sr_auto:'讓 AI 決定',sr_chorus:'副歌 / hook',sr_verse:'主歌',sr_bridge:'橋段',sr_opening:'開頭句',
+  l_extra:'額外方向（選填）',ph_extra:'延續這個情緒 / 加個轉折',
+  st2:'選曲風',st2s:'點一個就好',l_ref:'風格參考（選填）',ph_ref:'90 年代 neo-soul / 像 Frank Ocean',
+  st3:'誰來唱？',st3s:'聲音性別 + 音色',vg_any:'不限',vg_female:'女聲',vg_male:'男聲',
+  l_voicepre:'音色（點擊套用）',ph_vocal:'或自己打：female alto / male tenor / duet',
+  st4:'要什麼感覺？',st4s:'不確定就跳過',l_mood:'情緒',l_speed:'速度',
+  sp_slow:'🐢 慢',sp_mid:'🚶 中',sp_fast:'🏃 快',l_len:'長度',ln_short:'短 ~1.5分',ln_std:'標準 2-3分',ln_long:'長 3-4分',
+  pro:'專業微調',pro_sub:'— 調性 · 精準 BPM · 樂器 · 排除 · 結構 · 怪異度',
+  l_key:'調性 Key',l_tempo:'精準 BPM（覆寫速度）',ph_tempo:'92 bpm',l_lyrlang:'歌詞語言',
+  l_instr:'指定樂器',ph_instr:'尼龍吉他、電鋼琴、薩克斯、808',l_excl:'排除風格',ph_excl:'edm、autotune、激烈鼓點',
+  l_struct:'歌曲結構',l_weird:'怪異度',l_infl:'風格影響',
+  slider_hint:'滑桿：拖曳即覆寫；不動 = 讓 AI 依曲風自動給合適值。',l_batch:'一次生幾首（歌單）',sw_instr:'純音樂',sw_explicit:'允許露骨',
+  pv:'SUNO 預覽',pv_note:'這就是會送進 Suno 的內容（AI 還會精修歌詞）',pv_excl:'排除',
+  gen:'⚡ 生成這首歌',gen_cowrite:'✎ 完成我的歌',batch:'▦ 生成歌單',randomize:'🎲 全隨機',randomize_keep:'🎲 鎖曲風隨機',
+  t_out:'🎧 你的歌曲',clear:'✕ 清除',rework:'↻ 重寫此段',ph_rework:'想怎麼改 — 例：更有希望感',
+  guide:'在 Suno 點 <b>Create → Advanced</b>：把 <b>STYLES</b> 貼到 Styles、<b>LYRICS</b> 貼到 Lyrics、<b>EXCLUDE</b> 貼到 Exclude styles，再到 More Options 設 Vocal Gender / Weirdness / Style Influence。',
+  foot:'SONGFORGE · 本機運作 · 歌詞只送往你選的 LLM backend，不外流',
+  a_idea:'請先在步驟 1 寫下這首歌想講什麼。',a_seed:'請先貼上你的歌詞。',writing:'⏳ 生成中…（約 30-60 秒）',writingN:'⏳ 生成 {n} 首中…'},
 };
-let LANG='en';
-function setLang(l){LANG=l;
-  document.querySelectorAll('.langbtn').forEach(b=>b.classList.toggle('active',b.dataset.l===l));
+function setLang(l){LANG=l;document.querySelectorAll('.langbtn').forEach(b=>b.classList.toggle('active',b.dataset.l===l));
   const d=I18N[l];
-  document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.dataset.i18n;if(d[k]!=null)e.textContent=d[k];});
+  document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.dataset.i18n;if(d[k]!=null)e.innerHTML=d[k];});
   document.querySelectorAll('[data-ph]').forEach(e=>{const k=e.dataset.ph;if(d[k]!=null)e.placeholder=d[k];});
   document.documentElement.lang=(l==='zh'?'zh-TW':'en');
-  renderVoices();
-}
+  renderGenres();renderVoices();renderMoods();
+  $('genBtn').textContent=d[MODE==='cowrite'?'gen_cowrite':'gen'];}
 
-// ── randomize settings ──
-const RND={
-  tempo:['72 bpm','85 bpm','92 bpm','100 bpm','110 bpm','128 bpm','slow ballad','mid-tempo groove','upbeat'],
-  key:['C minor','A minor','E minor','G major','D major','F# minor','Bb major','C# minor'],
-  vocal:['female alto','female soprano','male tenor','male baritone','breathy female','soulful male','duet','airy androgynous'],
-  instr:['nylon guitar, warm pads','rhodes piano, soft sax','808 bass, crisp hats, synth keys','fingerpicked guitar, strings',
-    'analog synth, drum machine','upright bass, brushed drums','jangly electric guitar, organ','lush pads, sub bass, vinyl crackle'],
-  idea:{en:[
-    'a late-night drive through the rain, missing someone you let go',
-    'falling for someone you just met, butterflies and city lights',
-    'leaving your hometown for the first time, hopeful but scared',
-    'a slow Sunday morning with the person you love, coffee and sunlight',
-    'dancing alone at 2am to forget a bad week, defiant and free',
-    'a long-distance love kept alive through late phone calls',
-    'looking back on a summer that changed everything',
-    'finding peace after heartbreak, learning to be on your own',
-    'a quiet confession you never had the courage to say',
-    'chasing a dream against everyone telling you to stop'],
-   zh:[
-    '深夜雨中開車，思念一個你放手的人',
-    '對剛認識的人心動，悸動與城市燈火',
-    '第一次離開家鄉，既期待又害怕',
-    '與所愛之人的慵懶週日早晨，咖啡與陽光',
-    '凌晨兩點獨自跳舞忘掉糟糕的一週，倔強又自由',
-    '靠深夜通話維繫的遠距離戀愛',
-    '回望一個改變一切的夏天',
-    '心碎後找回平靜，學會獨自一人',
-    '一句你始終沒勇氣說出口的告白',
-    '不顧所有人勸阻，追逐一個夢']},
-};
-// ── voice timbre presets (fill the Vocal field with Suno-friendly English) ──
-const VOICES=[
-  {en:'Smoky raspy (low)', zh:'低沈菸酒嗓', d:'low raspy smoky husky voice, whiskey-soaked gravelly tone'},
-  {en:'Sweet female', zh:'甜美女聲', d:'sweet bright airy female vocals, cute youthful tone'},
-  {en:'Rich female', zh:'渾厚女聲', d:'rich powerful full-bodied female vocals, soulful belt, warm'},
-  {en:'Rich male', zh:'渾厚男聲', d:'deep resonant rich baritone male vocals, warm chest voice'},
-  {en:'Ethereal female', zh:'空靈女聲', d:'ethereal breathy airy female vocals, dreamy reverb'},
-  {en:'Sultry jazz', zh:'慵懶爵士嗓', d:'lazy sultry jazzy vocals, smoky lounge tone'},
-  {en:'Bright tenor', zh:'清亮男聲', d:'bright clear youthful male tenor, emotive'},
-  {en:'Gritty rock', zh:'沙啞搖滾嗓', d:'gritty raspy rock vocals, raw powerful edge'},
-];
-function fillVoice(d){document.getElementById('vocal').value=d;
-  if(!document.getElementById('adv').classList.contains('open'))toggleAdv();}
-function renderVoices(){const c=document.getElementById('voiceChips');if(!c)return;
-  c.innerHTML='';VOICES.forEach(v=>{const b=document.createElement('div');b.className='chip';
-    b.textContent=(LANG==='zh'?v.zh:v.en);b.title=v.d;b.onclick=()=>fillVoice(v.d);c.appendChild(b);});}
-function rpick(a){return a[Math.floor(Math.random()*a.length)];}
-function randomize(){
-  pickGenre(rpick(Object.keys(GENRES)));
-  if(MODE!=='cowrite') document.getElementById('idea').value=rpick(RND.idea[LANG]||RND.idea.en);
-  document.getElementById('tempo').value=rpick(RND.tempo);
-  document.getElementById('key').value=rpick(RND.key);
-  document.getElementById('vocal').value=rpick(RND.vocal);
-  document.getElementById('instruments').value=rpick(RND.instr);
-  pickVG(rpick(['any','female','male']));
-  const w=Math.floor(Math.random()*101),i=20+Math.floor(Math.random()*71);
-  document.getElementById('weird').value=w;sliderOn('weird','weirdVal');
-  document.getElementById('infl').value=i;sliderOn('infl','inflVal');
-  if(!document.getElementById('adv').classList.contains('open'))toggleAdv();
-}
+function renderGenres(){const g=$('genres');g.innerHTML='';Object.keys(GENRES).forEach(k=>{const v=GENRES[k];
+  const b=document.createElement('div');b.className='chip'+(k===SEL.genre?' active':'');b.dataset.k=k;
+  b.innerHTML=`<span class="emo">${v.emo}</span>${v.label}`;b.onclick=()=>pickGenre(k);g.appendChild(b);});}
+function renderVoices(){const c=$('voiceChips');c.innerHTML='';VOICES.forEach(v=>{const b=document.createElement('div');
+  b.className='chip';b.textContent=(LANG==='zh'?v.zh:v.en);b.title=v.d;b.onclick=()=>fillVoice(v.d);c.appendChild(b);});}
+function renderMoods(){const c=$('moods');c.innerHTML='';MOODS.forEach(v=>{const b=document.createElement('div');
+  const lab=(LANG==='zh'?v.zh:v.en);b.className='chip'+(SEL.mood===lab||SEL.mood===v.zh||SEL.mood===v.en?' active':'');
+  b.dataset.md=lab;b.innerHTML=`<span class="emo">${v.emo}</span>${lab}`;b.onclick=()=>pickMood(lab);c.appendChild(b);});}
 
-(function(){const g=document.getElementById('genres');
-  Object.keys(GENRES).forEach(k=>{const b=document.createElement('div');b.className='chip';b.dataset.k=k;b.textContent=GENRES[k].label;b.onclick=()=>pickGenre(k);g.appendChild(b);});
-  pickGenre('midnight_rnb');renderVoices();probe();setInterval(probe,15000);})();
+async function probe(){const s=$('status');try{const r=await fetch(API+'/api/health',{signal:AbortSignal.timeout(2500)});
+  if(r.ok){const d=await r.json();s.textContent='● '+d.backend+' · '+d.model;s.className='status on';return;}}catch(e){}
+  s.textContent='● backend offline';s.className='status off';}
+
+(function(){setLang('zh');updatePreview();probe();setInterval(probe,15000);
+  ['idea','ref','vocal','instruments','exclude','key','tempo'].forEach(id=>$(id)&&$(id).addEventListener('input',updatePreview));})();
 </script>
 </body>
 </html>
