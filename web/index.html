@@ -110,6 +110,10 @@
   .song-h{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
   .song-h .t{font-size:20px;font-weight:800}.song-h .g{font-size:11px;color:var(--dim);font-family:var(--mono)}
   .star{cursor:pointer;font-size:18px;color:var(--amber);user-select:none}
+  .djbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 2px}
+  .dj{font-family:var(--mono);font-size:12px;color:var(--dim);background:var(--bg2);border:1px solid var(--line2);border-radius:7px;padding:6px 11px}
+  .dj b{color:var(--text)} .dj.cam b{color:var(--amber)}
+  pre.chords{color:var(--violet)}
   /* mobile: rail not sticky; show a fixed create bar */
   .mbar{display:none}
   @media(max-width:920px){
@@ -427,12 +431,17 @@ function songCard(s,i){
     <div class="fh"><span>STYLES</span><button class="cp" onclick="copy('${sid}_s',this)">copy</button></div><pre id="${sid}_s" class="style">${esc(s.style)}</pre>
     ${s.exclude_styles?`<div class="fh"><span>EXCLUDE</span><button class="cp" onclick="copy('${sid}_x',this)">copy</button></div><pre id="${sid}_x" class="style">${esc(s.exclude_styles)}</pre>`:''}
     <div class="meters"><span class="meter">Vocal: <b>${esc(vg)}</b></span><span class="meter">Weirdness: <b>${w}%</b></span><span class="meter">Style influence: <b>${inf}%</b></span></div>
+    ${(s.musical_key||s.bpm||s.camelot||s.chords)?`<div class="djbar">
+      ${s.musical_key?`<span class="dj">🎵 Key <b>${esc(s.musical_key)}</b></span>`:''}
+      ${s.bpm?`<span class="dj">⏱ <b>${esc(s.bpm)}</b> BPM</span>`:''}
+      ${s.camelot?`<span class="dj cam" title="Camelot (harmonic mixing)">🎧 <b>${esc(s.camelot)}</b></span>`:''}
+    </div>${s.chords?`<div class="fh"><span>${T.chords}</span><button class="cp" onclick="copy('${sid}_c',this)">copy</button></div><pre id="${sid}_c" class="chords">${esc(s.chords)}</pre>`:''}`:''}
     <div class="fh"><span>LYRICS</span><button class="cp" onclick="copy('${sid}_l',this)">copy</button></div><pre id="${sid}_l">${esc(s.lyrics)}</pre>
     <div class="rework"><select id="${sid}_sec"><option>Chorus</option><option>Verse</option><option>Verse 2</option><option>Pre-Chorus</option><option>Bridge</option><option>Intro</option><option>Outro</option></select>
       <input id="${sid}_note" data-ph="ph_rework" placeholder="${T.ph_rework}">
       <button class="btn ghost" style="flex:none;padding:9px 14px" onclick="reworkSong(${i})">${T.rework}</button></div></div>`;
 }
-function songText(s){return `### ${s.title}\n\n[STYLES]\n${s.style}\n\n[EXCLUDE]\n${s.exclude_styles||'-'}\n\n[VOCAL] ${s.vocal_gender||'any'}  [WEIRD] ${s.weirdness??50}%  [INFLUENCE] ${s.style_influence??50}%\n\n[LYRICS]\n${s.lyrics}`;}
+function songText(s){return `### ${s.title}\n\n[STYLES]\n${s.style}\n\n[EXCLUDE]\n${s.exclude_styles||'-'}\n\n[KEY] ${s.musical_key||'-'}  [BPM] ${s.bpm||'-'}  [CAMELOT] ${s.camelot||'-'}\n[CHORDS] ${s.chords||'-'}\n\n[VOCAL] ${s.vocal_gender||'any'}  [WEIRD] ${s.weirdness??50}%  [INFLUENCE] ${s.style_influence??50}%\n\n[LYRICS]\n${s.lyrics}`;}
 function copyAll(i,b){navigator.clipboard.writeText(songText(SONGS[i]));const o=b.textContent;b.textContent='✓';setTimeout(()=>b.textContent=o,1100);}
 function toggleFav(i){SONGS[i]._fav=!SONGS[i]._fav;saveSongs();render();}
 function delSong(i){SONGS.splice(i,1);saveSongs();render();}
@@ -520,7 +529,7 @@ const I18N={
   slider_hint:'Sliders: drag to override, untouched = AI picks per genre.',l_batch:'Songs per batch',sw_instr:'Instrumental',sw_explicit:'Explicit OK',
   pv:'SUNO PREVIEW',pv_note:'this is what goes into Suno (AI still refines the lyrics)',pv_excl:'EXCLUDE',
   gen:'⚡ Create this song',gen_cowrite:'✎ Finish my song',batch:'▦ Make a playlist',randomize:'🎲 All random',randomize_keep:'🎲 Keep genre, roll rest',
-  t_out:'🎧 Your songs',clear:'✕ clear',rework:'↻ rework section',fav:'favorite',copyall:'📋 all',regen:'🔄 new version',writingP:'⏳ {i}/{n}…',confirm_clear:'You have favorites. Clear everything?',ph_rework:'how to change it — e.g. more hopeful',
+  t_out:'🎧 Your songs',clear:'✕ clear',rework:'↻ rework section',chords:'CHORDS · 和弦',fav:'favorite',copyall:'📋 all',regen:'🔄 new version',writingP:'⏳ {i}/{n}…',confirm_clear:'You have favorites. Clear everything?',ph_rework:'how to change it — e.g. more hopeful',
   guide:'In Suno, open <b>Create → Advanced</b>: paste <b>STYLES</b> into Styles, <b>LYRICS</b> into Lyrics, <b>EXCLUDE</b> into Exclude styles, then set Vocal Gender / Weirdness / Style Influence in More Options.',
   foot:'SONGFORGE · runs locally · lyrics only go to your chosen LLM backend',
   a_idea:'Type what the song is about first (step 1).',a_seed:'Paste your lyrics first.',writing:'⏳ writing… (~30-60s)',writingN:'⏳ writing {n}…'},
@@ -542,7 +551,7 @@ const I18N={
   slider_hint:'滑桿：拖曳即覆寫；不動 = 讓 AI 依曲風自動給合適值。',l_batch:'一次生幾首（歌單）',sw_instr:'純音樂',sw_explicit:'允許露骨',
   pv:'SUNO 預覽',pv_note:'這就是會送進 Suno 的內容（AI 還會精修歌詞）',pv_excl:'排除',
   gen:'⚡ 生成這首歌',gen_cowrite:'✎ 完成我的歌',batch:'▦ 生成歌單',randomize:'🎲 全隨機',randomize_keep:'🎲 鎖曲風隨機',
-  t_out:'🎧 你的歌曲',clear:'✕ 清除',rework:'↻ 重寫此段',fav:'收藏',copyall:'📋 全部',regen:'🔄 換版本',writingP:'⏳ {i}/{n}…',confirm_clear:'有收藏的歌，確定全部清除？',ph_rework:'想怎麼改 — 例：更有希望感',
+  t_out:'🎧 你的歌曲',clear:'✕ 清除',rework:'↻ 重寫此段',chords:'CHORDS · 和弦',fav:'收藏',copyall:'📋 全部',regen:'🔄 換版本',writingP:'⏳ {i}/{n}…',confirm_clear:'有收藏的歌，確定全部清除？',ph_rework:'想怎麼改 — 例：更有希望感',
   guide:'在 Suno 點 <b>Create → Advanced</b>：把 <b>STYLES</b> 貼到 Styles、<b>LYRICS</b> 貼到 Lyrics、<b>EXCLUDE</b> 貼到 Exclude styles，再到 More Options 設 Vocal Gender / Weirdness / Style Influence。',
   foot:'SONGFORGE · 本機運作 · 歌詞只送往你選的 LLM backend，不外流',
   a_idea:'請先在步驟 1 寫下這首歌想講什麼。',a_seed:'請先貼上你的歌詞。',writing:'⏳ 生成中…（約 30-60 秒）',writingN:'⏳ 生成 {n} 首中…'},

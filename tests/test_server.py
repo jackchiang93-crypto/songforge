@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import server
-from server import app, SunoRequest, _parse_json, _clamp_pct, _to_response
+from server import app, SunoRequest, _parse_json, _clamp_pct, _to_response, to_camelot
 
 client = TestClient(app)
 
@@ -21,7 +21,26 @@ FAKE = {
     "vocal_gender": "female",
     "weirdness": 30,
     "style_influence": 65,
+    "musical_key": "C minor",
+    "bpm": "85",
+    "chords": "Verse: Cm - Ab - Eb - Bb",
 }
+
+
+def test_camelot():
+    assert to_camelot("C minor") == "5A"
+    assert to_camelot("A minor") == "8A"
+    assert to_camelot("C major") == "8B"
+    assert to_camelot("F# minor") == "11A"
+    assert to_camelot("") == ""
+    assert to_camelot("nonsense") == ""
+
+
+def test_to_response_adds_camelot():
+    r = _to_response(dict(FAKE), SunoRequest(idea="x"))
+    assert r.camelot == "5A"
+    assert r.bpm == "85"
+    assert r.chords.startswith("Verse:")
 
 
 @pytest.fixture(autouse=True)

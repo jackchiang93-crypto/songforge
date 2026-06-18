@@ -75,6 +75,11 @@ class SunoResponse(BaseModel):
     vocal_gender: str = "any"  # → Suno "Vocal Gender"
     weirdness: int = 50        # → Suno "Weirdness" %
     style_influence: int = 50  # → Suno "Style Influence" %
+    # ── musician / DJ layer ──
+    musical_key: str = ""      # e.g. "C minor" (resolved key of the song)
+    bpm: str = ""              # e.g. "92"
+    camelot: str = ""          # harmonic-mixing code, e.g. "5A"
+    chords: str = ""           # chord progression per section
 
 
 class BatchRequest(SunoRequest):
@@ -111,6 +116,10 @@ OUTPUT FIELDS (these map 1:1 to Suno's Advanced create panel):
    Pick a sensible value for the genre (pop ~25, experimental ~70).
 7. style_influence — integer 0-100. Suno "Style Influence": how strongly the
    style tags steer it. Default ~50; higher for strong genre identity.
+8. musical_key — the song's key, e.g. "C minor", "A major" (honor user's key if given).
+9. bpm — the tempo as a number string, e.g. "92" (consistent with the style/tempo).
+10. chords — a chord progression for the main sections, written as plain text,
+   e.g. "Verse: Am - F - C - G | Chorus: F - C - G - Am". Use chords that fit the key.
 
 RULES:
 - Write lyrics in the requested LANGUAGE (default English). style/exclude stay English.
@@ -120,7 +129,7 @@ RULES:
 
 OUTPUT: pure JSON ONLY. No markdown fences. No prose.
 
-{"title":"...","style":"...","lyrics":"[Verse]\\nline\\n\\n[Chorus]\\nline","exclude_styles":"...","vocal_gender":"any","weirdness":50,"style_influence":50}
+{"title":"...","style":"...","lyrics":"[Verse]\\nline\\n\\n[Chorus]\\nline","exclude_styles":"...","vocal_gender":"any","weirdness":50,"style_influence":50,"musical_key":"C minor","bpm":"92","chords":"Verse: Cm - Ab - Eb - Bb | Chorus: Ab - Eb - Bb - Cm"}
 """
 
 
@@ -240,6 +249,40 @@ def _clamp_pct(v, default: int) -> int:
         return default
 
 
+# Camelot wheel (harmonic-mixing codes used by Rekordbox/Serato/Mixed In Key)
+_CAMELOT = {
+    # major (B side)
+    ("b", "major"): "1B", ("f#", "major"): "2B", ("gb", "major"): "2B", ("db", "major"): "3B",
+    ("c#", "major"): "3B", ("ab", "major"): "4B", ("g#", "major"): "4B", ("eb", "major"): "5B",
+    ("d#", "major"): "5B", ("bb", "major"): "6B", ("a#", "major"): "6B", ("f", "major"): "7B",
+    ("c", "major"): "8B", ("g", "major"): "9B", ("d", "major"): "10B", ("a", "major"): "11B",
+    ("e", "major"): "12B",
+    # minor (A side)
+    ("ab", "minor"): "1A", ("g#", "minor"): "1A", ("eb", "minor"): "2A", ("d#", "minor"): "2A",
+    ("bb", "minor"): "3A", ("a#", "minor"): "3A", ("f", "minor"): "4A", ("c", "minor"): "5A",
+    ("g", "minor"): "6A", ("d", "minor"): "7A", ("a", "minor"): "8A", ("e", "minor"): "9A",
+    ("b", "minor"): "10A", ("f#", "minor"): "11A", ("gb", "minor"): "11A", ("c#", "minor"): "12A",
+    ("db", "minor"): "12A",
+}
+
+
+def to_camelot(key: str) -> str:
+    """Convert a key like 'C minor' / 'F# Major' to a Camelot code, or '' if unknown."""
+    if not key:
+        return ""
+    k = key.strip().lower().replace("♯", "#").replace("♭", "b")
+    quality = "minor" if ("min" in k or k.endswith("m")) else ("major" if "maj" in k or "major" in k else None)
+    # extract the root note (first token)
+    import re as _re
+    m = _re.match(r"\s*([a-g][#b]?)", k)
+    if not m:
+        return ""
+    root = m.group(1)
+    if quality is None:
+        quality = "minor" if k.rstrip().endswith("m") else "major"
+    return _CAMELOT.get((root, quality), "")
+
+
 def _to_response(data: dict, req: SunoRequest) -> SunoResponse:
     """Build SunoResponse, letting explicit user overrides win over the LLM."""
     vg = (req.vocal_gender or data.get("vocal_gender") or "any").lower()
@@ -248,6 +291,7 @@ def _to_response(data: dict, req: SunoRequest) -> SunoResponse:
     weird = req.weirdness if req.weirdness is not None else _clamp_pct(data.get("weirdness"), 50)
     infl = req.style_influence if req.style_influence is not None else _clamp_pct(data.get("style_influence"), 50)
     excl = req.exclude_styles.strip() or str(data.get("exclude_styles", "")).strip()
+    key = (req.musical_key.strip() or str(data.get("musical_key", "")).strip())
     return SunoResponse(
         title=str(data["title"]).strip(),
         style=str(data["style"]).strip(),
@@ -256,6 +300,10 @@ def _to_response(data: dict, req: SunoRequest) -> SunoResponse:
         vocal_gender=vg,
         weirdness=weird,
         style_influence=infl,
+        musical_key=key,
+        bpm=str(data.get("bpm", "")).strip(),
+        camelot=to_camelot(key),
+        chords=str(data.get("chords", "")).strip(),
     )
 
 
@@ -338,8 +386,10 @@ OUTPUT FIELDS (pure JSON ONLY, no markdown, no prose):
 5. vocal_gender — "male" | "female" | "any".
 6. weirdness — integer 0-100 (experimental-ness).
 7. style_influence — integer 0-100 (how strongly style tags steer it).
+8. musical_key, bpm, chords — the key, tempo number, and a chord progression
+   for the main sections (e.g. "Verse: Am - F - C - G | Chorus: F - C - G - Am").
 
-{"title":"...","style":"...","lyrics":"[Verse]\\n...\\n\\n[Chorus]\\n...","exclude_styles":"...","vocal_gender":"any","weirdness":50,"style_influence":50}
+{"title":"...","style":"...","lyrics":"[Verse]\\n...\\n\\n[Chorus]\\n...","exclude_styles":"...","vocal_gender":"any","weirdness":50,"style_influence":50,"musical_key":"A minor","bpm":"90","chords":"Verse: Am - F - C - G"}
 """
 
 
