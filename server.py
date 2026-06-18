@@ -33,9 +33,12 @@ API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 CLAUDE_TIMEOUT = int(os.environ.get("SUNO_TIMEOUT", "90"))
 
 app = FastAPI(title="Suno Song Studio", version="1.0")
+# CORS: defaults to "*" for easy local use. Set SUNO_CORS_ORIGINS (comma-separated)
+# to lock it down before exposing the server beyond localhost.
+_origins = os.environ.get("SUNO_CORS_ORIGINS", "*").strip()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"] if _origins == "*" else [o.strip() for o in _origins.split(",") if o.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
 )

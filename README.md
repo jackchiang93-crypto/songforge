@@ -21,7 +21,10 @@ Sleek dark "black-tech" UI. Runs entirely on your machine.
 - **Playlist batch** — generate up to 20 distinct songs in one click.
 - **Multi-language lyrics** — English, Korean, Japanese, Mandarin, Spanish, French.
 - **Instrumental & explicit toggles.**
-- **Copy & export** — one-click copy of Style / Lyrics, or export the batch as `.txt` / `.json`.
+- **Persistent library** — generated songs are saved in your browser (localStorage), survive refresh; ⭐ favorite, 🔄 regenerate a new version with the same settings, ✕ delete, 📋 copy-all.
+- **Live batch progress** — playlist generation streams songs in one-by-one with an `i/n` counter instead of one long freeze.
+- **Mobile-friendly** — sticky bottom create bar on small screens.
+- **Copy & export** — one-click copy of Style / Lyrics (or the whole song), export the batch as `.txt` / `.json`.
 - **Video maker** — `make_video.sh` stitches a cover + mp3s into a 1080p waveform video for YouTube playlists.
 - **Two LLM backends, zero secrets in code** (see below).
 

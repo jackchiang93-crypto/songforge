@@ -109,6 +109,16 @@
   .song::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad)}
   .song-h{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
   .song-h .t{font-size:20px;font-weight:800}.song-h .g{font-size:11px;color:var(--dim);font-family:var(--mono)}
+  .star{cursor:pointer;font-size:18px;color:var(--amber);user-select:none}
+  /* mobile: rail not sticky; show a fixed create bar */
+  .mbar{display:none}
+  @media(max-width:920px){
+    .rail{position:static}
+    .mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;gap:8px;padding:10px 14px;
+      background:rgba(7,7,9,.96);border-top:1px solid var(--line2);backdrop-filter:blur(8px)}
+    .mbar .create{flex:1;padding:13px;font-size:15px}
+    body{padding-bottom:80px}
+  }
   .fh{display:flex;align-items:center;gap:10px;margin:14px 0 5px}
   .fh span{font-size:10px;letter-spacing:2px;color:var(--dim);font-family:var(--mono)}
   pre{background:var(--bg);border:1px solid var(--line2);border-radius:9px;padding:13px;white-space:pre-wrap;
@@ -295,6 +305,11 @@
   <footer data-i18n="foot">SONGFORGE · 本機運作 · 歌詞只送往你選的 LLM backend，不外流</footer>
 </div>
 
+<div class="mbar">
+  <button class="create" onclick="genOne()" id="genBtnM" data-i18n="gen">⚡ 生成這首歌</button>
+  <button class="btn ghost" style="flex:none" onclick="randomize(true)">🎲</button>
+</div>
+
 <script>
 const API = location.protocol.startsWith('http') ? '' : 'http://localhost:5001';
 
@@ -398,15 +413,33 @@ function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':
 
 function songCard(s,i){
   const sid='s'+i, vg=(s.vocal_gender||'any'), w=(s.weirdness??50), inf=(s.style_influence??50);
-  return `<div class="song"><div class="song-h"><span class="t">${esc(s.title)}</span><span class="g">// ${GENRES[SEL.genre].label}</span></div>
+  const gl=s._genre||(GENRES[SEL.genre]&&GENRES[SEL.genre].label)||'';
+  const T=I18N[LANG];
+  const star=s._fav?'★':'☆';
+  return `<div class="song"><div class="song-h">
+      <span class="star" onclick="toggleFav(${i})" title="${T.fav}">${star}</span>
+      <span class="t">${esc(s.title)}</span><span class="g">// ${esc(gl)}</span>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="cp" onclick="copyAll(${i},this)">${T.copyall}</button>
+        <button class="cp" onclick="regen(${i},this)">${T.regen}</button>
+        <button class="cp" onclick="delSong(${i})">✕</button>
+      </div></div>
     <div class="fh"><span>STYLES</span><button class="cp" onclick="copy('${sid}_s',this)">copy</button></div><pre id="${sid}_s" class="style">${esc(s.style)}</pre>
     ${s.exclude_styles?`<div class="fh"><span>EXCLUDE</span><button class="cp" onclick="copy('${sid}_x',this)">copy</button></div><pre id="${sid}_x" class="style">${esc(s.exclude_styles)}</pre>`:''}
     <div class="meters"><span class="meter">Vocal: <b>${esc(vg)}</b></span><span class="meter">Weirdness: <b>${w}%</b></span><span class="meter">Style influence: <b>${inf}%</b></span></div>
     <div class="fh"><span>LYRICS</span><button class="cp" onclick="copy('${sid}_l',this)">copy</button></div><pre id="${sid}_l">${esc(s.lyrics)}</pre>
     <div class="rework"><select id="${sid}_sec"><option>Chorus</option><option>Verse</option><option>Verse 2</option><option>Pre-Chorus</option><option>Bridge</option><option>Intro</option><option>Outro</option></select>
-      <input id="${sid}_note" data-ph="ph_rework" placeholder="${I18N[LANG].ph_rework}">
-      <button class="btn ghost" style="flex:none;padding:9px 14px" onclick="reworkSong(${i})" data-i18n="rework">↻ 重寫此段</button></div></div>`;
+      <input id="${sid}_note" data-ph="ph_rework" placeholder="${T.ph_rework}">
+      <button class="btn ghost" style="flex:none;padding:9px 14px" onclick="reworkSong(${i})">${T.rework}</button></div></div>`;
 }
+function songText(s){return `### ${s.title}\n\n[STYLES]\n${s.style}\n\n[EXCLUDE]\n${s.exclude_styles||'-'}\n\n[VOCAL] ${s.vocal_gender||'any'}  [WEIRD] ${s.weirdness??50}%  [INFLUENCE] ${s.style_influence??50}%\n\n[LYRICS]\n${s.lyrics}`;}
+function copyAll(i,b){navigator.clipboard.writeText(songText(SONGS[i]));const o=b.textContent;b.textContent='✓';setTimeout(()=>b.textContent=o,1100);}
+function toggleFav(i){SONGS[i]._fav=!SONGS[i]._fav;saveSongs();render();}
+function delSong(i){SONGS.splice(i,1);saveSongs();render();}
+async function regen(i,b){const s=SONGS[i];if(!s._payload){showErr('No saved settings for this song');return;}
+  const o=b.textContent;b.disabled=true;b.textContent='⏳';
+  try{const d=await post('/api/suno',s._payload);d._genre=s._genre;d._payload=s._payload;d._fav=s._fav;SONGS[i]=d;saveSongs();render();}
+  catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent=o;}}
 function render(){$('results').innerHTML=SONGS.map(songCard).join('');
   $('resultsPanel').style.display=SONGS.length?'block':'none';$('count_out').textContent=SONGS.length+' tracks';}
 function copy(id,b){navigator.clipboard.writeText($(id).innerText);const o=b.textContent;b.textContent='✓';setTimeout(()=>b.textContent=o,1100);}
@@ -415,19 +448,35 @@ function showErr(m){$('resultsPanel').style.display='block';
 async function post(path,body){const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(!r.ok){const e=await r.json().catch(()=>({detail:r.statusText}));throw new Error(e.detail||r.statusText);}return r.json();}
 
+// persistence
+function saveSongs(){try{localStorage.setItem('sf_songs',JSON.stringify(SONGS.slice(0,60)));}catch(e){}}
+function loadSongs(){try{const v=localStorage.getItem('sf_songs');if(v)SONGS=JSON.parse(v)||[];}catch(e){SONGS=[];}}
+
 async function genOne(){const b=$('genBtn'),orig=b.textContent,T=I18N[LANG];let path='/api/suno',body=payload();
   if(MODE==='cowrite'){const seed=val('seed');if(!seed){alert(T.a_seed);return;}path='/api/suno/complete';
     body=payload({seed_lyrics:seed,seed_role:$('seedRole').value,idea:val('idea2')});}
   else if(!val('idea')){alert(T.a_idea);return;}
   b.disabled=true;b.textContent=T.writing;
-  try{SONGS.unshift(await post(path,body));render();}catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent=orig;}}
+  try{const d=await post(path,body);d._genre=GENRES[SEL.genre].label;d._payload=body;SONGS.unshift(d);saveSongs();render();}
+  catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent=orig;}}
+
 async function genBatch(){const T=I18N[LANG];if(!val('idea')){alert(T.a_idea);return;}
-  const n=Math.max(1,Math.min(20,parseInt($('count').value)||5));const b=$('batchBtn');b.disabled=true;b.textContent=T.writingN.replace('{n}',n);
-  try{const d=await post('/api/suno/batch',payload({count:n}));SONGS=d.songs.concat(SONGS);render();}catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent=T.batch;}}
+  const n=Math.max(1,Math.min(20,parseInt($('count').value)||5));const b=$('batchBtn');b.disabled=true;
+  const glabel=GENRES[SEL.genre].label;let made=0,fails=0;
+  // stream one-by-one so songs appear as they finish + show progress
+  for(let k=0;k<n;k++){
+    b.textContent=T.writingP.replace('{i}',k+1).replace('{n}',n);
+    const body=payload({idea:val('idea')+` (variation ${k+1} of ${n}, distinct from the others)`});
+    try{const d=await post('/api/suno',body);d._genre=glabel;d._payload=body;SONGS.unshift(d);made++;saveSongs();render();}
+    catch(e){fails++;showErr(e.message);}
+  }
+  b.disabled=false;b.textContent=T.batch;}
+
 async function reworkSong(i){const sid='s'+i,s=SONGS[i];
-  try{const d=await post('/api/suno/rework',{title:s.title,style:s.style,lyrics:s.lyrics,section:$(sid+'_sec').value,note:val(sid+'_note'),language:val('lang')});SONGS[i]=d;render();}catch(e){showErr(e.message);}}
-function clearAll(){SONGS=[];render();}
-function exportTxt(){const t=SONGS.map((s,i)=>`### ${i+1}. ${s.title}\n\n[STYLES]\n${s.style}\n\n[EXCLUDE]\n${s.exclude_styles||'-'}\n\n[VOCAL] ${s.vocal_gender||'any'}  [WEIRD] ${s.weirdness??50}%  [INFLUENCE] ${s.style_influence??50}%\n\n[LYRICS]\n${s.lyrics}\n`).join('\n'+'='.repeat(50)+'\n\n');dl(t,'songs.txt','text/plain');}
+  try{const d=await post('/api/suno/rework',{title:s.title,style:s.style,lyrics:s.lyrics,section:$(sid+'_sec').value,note:val(sid+'_note'),language:val('lang')});
+    d._genre=s._genre;d._payload=s._payload;d._fav=s._fav;SONGS[i]=d;saveSongs();render();}catch(e){showErr(e.message);}}
+function clearAll(){if(SONGS.some(s=>s._fav)&&!confirm(I18N[LANG].confirm_clear))return;SONGS=[];saveSongs();render();}
+function exportTxt(){const t=SONGS.map((s,i)=>(i+1)+'. '+songText(s)).join('\n\n'+'='.repeat(50)+'\n\n');dl(t,'songs.txt','text/plain');}
 function exportJson(){dl(JSON.stringify(SONGS,null,2),'songs.json','application/json');}
 function dl(c,n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();}
 
@@ -471,7 +520,7 @@ const I18N={
   slider_hint:'Sliders: drag to override, untouched = AI picks per genre.',l_batch:'Songs per batch',sw_instr:'Instrumental',sw_explicit:'Explicit OK',
   pv:'SUNO PREVIEW',pv_note:'this is what goes into Suno (AI still refines the lyrics)',pv_excl:'EXCLUDE',
   gen:'⚡ Create this song',gen_cowrite:'✎ Finish my song',batch:'▦ Make a playlist',randomize:'🎲 All random',randomize_keep:'🎲 Keep genre, roll rest',
-  t_out:'🎧 Your songs',clear:'✕ clear',rework:'↻ rework section',ph_rework:'how to change it — e.g. more hopeful',
+  t_out:'🎧 Your songs',clear:'✕ clear',rework:'↻ rework section',fav:'favorite',copyall:'📋 all',regen:'🔄 new version',writingP:'⏳ {i}/{n}…',confirm_clear:'You have favorites. Clear everything?',ph_rework:'how to change it — e.g. more hopeful',
   guide:'In Suno, open <b>Create → Advanced</b>: paste <b>STYLES</b> into Styles, <b>LYRICS</b> into Lyrics, <b>EXCLUDE</b> into Exclude styles, then set Vocal Gender / Weirdness / Style Influence in More Options.',
   foot:'SONGFORGE · runs locally · lyrics only go to your chosen LLM backend',
   a_idea:'Type what the song is about first (step 1).',a_seed:'Paste your lyrics first.',writing:'⏳ writing… (~30-60s)',writingN:'⏳ writing {n}…'},
@@ -493,7 +542,7 @@ const I18N={
   slider_hint:'滑桿：拖曳即覆寫；不動 = 讓 AI 依曲風自動給合適值。',l_batch:'一次生幾首（歌單）',sw_instr:'純音樂',sw_explicit:'允許露骨',
   pv:'SUNO 預覽',pv_note:'這就是會送進 Suno 的內容（AI 還會精修歌詞）',pv_excl:'排除',
   gen:'⚡ 生成這首歌',gen_cowrite:'✎ 完成我的歌',batch:'▦ 生成歌單',randomize:'🎲 全隨機',randomize_keep:'🎲 鎖曲風隨機',
-  t_out:'🎧 你的歌曲',clear:'✕ 清除',rework:'↻ 重寫此段',ph_rework:'想怎麼改 — 例：更有希望感',
+  t_out:'🎧 你的歌曲',clear:'✕ 清除',rework:'↻ 重寫此段',fav:'收藏',copyall:'📋 全部',regen:'🔄 換版本',writingP:'⏳ {i}/{n}…',confirm_clear:'有收藏的歌，確定全部清除？',ph_rework:'想怎麼改 — 例：更有希望感',
   guide:'在 Suno 點 <b>Create → Advanced</b>：把 <b>STYLES</b> 貼到 Styles、<b>LYRICS</b> 貼到 Lyrics、<b>EXCLUDE</b> 貼到 Exclude styles，再到 More Options 設 Vocal Gender / Weirdness / Style Influence。',
   foot:'SONGFORGE · 本機運作 · 歌詞只送往你選的 LLM backend，不外流',
   a_idea:'請先在步驟 1 寫下這首歌想講什麼。',a_seed:'請先貼上你的歌詞。',writing:'⏳ 生成中…（約 30-60 秒）',writingN:'⏳ 生成 {n} 首中…'},
@@ -519,7 +568,7 @@ async function probe(){const s=$('status');try{const r=await fetch(API+'/api/hea
   if(r.ok){const d=await r.json();s.textContent='● '+d.backend+' · '+d.model;s.className='status on';return;}}catch(e){}
   s.textContent='● backend offline';s.className='status off';}
 
-(function(){setLang('zh');updatePreview();probe();setInterval(probe,15000);
+(function(){loadSongs();setLang('zh');render();updatePreview();probe();setInterval(probe,15000);
   ['idea','ref','vocal','instruments','exclude','key','tempo'].forEach(id=>$(id)&&$(id).addEventListener('input',updatePreview));})();
 </script>
 </body>
