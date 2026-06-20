@@ -493,22 +493,36 @@ function dl(c,n,t){const a=document.createElement('a');a.href=URL.createObjectUR
 const IDEAS={en:['a late-night drive in the rain, missing someone you let go','falling for a stranger under city lights','leaving your hometown, hopeful but scared','a slow Sunday morning with someone you love','dancing alone at 2am to forget a bad week','a long-distance love kept alive by late calls','looking back on a summer that changed everything','finding peace after heartbreak','a confession you never had courage to say','chasing a dream against all odds'],
   zh:['深夜雨中開車，思念一個你放手的人','在城市燈火下對陌生人心動','離開家鄉，既期待又害怕','與所愛之人的慵懶週日早晨','凌晨兩點獨自跳舞忘掉糟糕的一週','靠深夜通話維繫的遠距離戀愛','回望一個改變一切的夏天','心碎後找回平靜','一句你始終沒勇氣說出口的告白','不顧一切追逐一個夢']};
 function rpick(a){return a[Math.floor(Math.random()*a.length)];}
-// combinatorial idea engine — who + situation + at + feeling → thousands of combos
-const SPARK={
-  zh:{who:['一個剛失戀的人','一對遠距離情侶','一個離家的少年','一個夜班司機','一個暗戀同事的人','一個重逢的舊情人','一個獨自旅行的女子','一個想被理解的靈魂','一群不想長大的朋友','一個剛搬到陌生城市的人'],
-    what:['在雨中開車','望著城市夜景','翻著舊照片','傳了又刪的訊息','在便利商店買醉','看著最後一班列車','收拾打包的行李','在頂樓吹風','對著電話沉默','跳著沒人看見的舞'],
-    at:['深夜的高速公路','凌晨四點的房間','下著雨的便利商店','空蕩的地鐵月台','夏末的海邊','霓虹閃爍的街角','搬空的舊公寓','陌生城市的天台'],
-    feel:['既期待又害怕','想念卻說不出口','倔強又自由','溫柔而心碎','釋懷後的平靜','藏不住的悸動','孤獨但不絕望','對未來的微光']},
-  en:{who:['someone fresh out of a breakup','a long-distance couple','a teenager leaving home','a night-shift driver','someone crushing on a coworker','two old flames reunited','a woman travelling alone','a soul that just wants to be understood','friends who refuse to grow up','someone newly moved to a strange city'],
-    what:['driving through the rain','watching the city skyline','flipping through old photos','typing and deleting a text','getting tipsy at a convenience store','watching the last train leave','packing their bags','feeling the wind on a rooftop','going silent on the phone','dancing where no one sees'],
-    at:['a midnight highway','a 4am bedroom','a rainy convenience store','an empty subway platform','a late-summer shore','a neon street corner','an emptied old apartment','a rooftop in a strange city'],
-    feel:['hopeful but scared','missing someone they can\'t say it to','defiant and free','tender and heartbroken','at peace after letting go','a flutter they can\'t hide','lonely but not hopeless','a faint light toward the future']},
+// each genre maps to a "vibe"; the idea spark pulls from that vibe's pool
+const GVIBE={midnight_rnb:'night',groove_pop:'party',rainy_jazz:'melancholy',synthwave:'night',
+  acoustic:'morning',lofi:'focus',citypop:'party',dreampop:'dreamy',trap_soul:'night',
+  bossa:'romantic',ballad:'sad',indie_rock:'youth',edm_chill:'sunset',epic:'epic'};
+const VIBES={
+  night:{zh:['深夜雨中開車，思念一個你放手的人','凌晨四點的城市，霓虹下的孤獨與渴望','夜班結束後一個人走過空蕩街道','傳了又刪的深夜訊息，欲言又止','頂樓吹著風，想著回不去的那個人'],
+    en:['a rainy late-night drive, missing someone you let go','4am city, neon-lit loneliness and longing','walking home alone through empty streets after a night shift','a midnight text you keep typing and deleting','rooftop wind, thinking of someone you can\'t go back to']},
+  party:{zh:['週五下班的自由，整座城市都是舞池','和好朋友把煩惱丟在身後的夜晚','陽光下開著車窗，心情輕快到想跳舞','久違的重逢，笑著聊到天亮','把糟糕的一週甩開，盡情搖擺'],
+    en:['Friday-night freedom, the whole city is a dance floor','a night of throwing your worries away with friends','windows down in the sun, too happy to sit still','an overdue reunion, laughing till sunrise','shaking off a rough week and just moving']},
+  melancholy:{zh:['雨打窗台的午後，一個人配著爵士發呆','咖啡涼了，回憶卻還溫熱','下雨天的便利商店，淡淡的孤獨','翻著舊照片，想念一段回不去的時光','深夜小酒館，故事都泡在酒裡'],
+    en:['a rainy afternoon, jazz and quiet daydreaming alone','the coffee\'s gone cold but the memory\'s still warm','a soft loneliness in a rainy convenience store','old photos and missing a time you can\'t return to','a late-night bar where every story soaks in the glass']},
+  morning:{zh:['慵懶的週日早晨，陽光、咖啡和愛的人','清晨的第一道光，溫柔地重新開始','慢下來的一天，珍惜微小的幸福','窗邊的晨光，與一杯熱茶的寧靜','嶄新的一天，心懷感恩地醒來'],
+    en:['a lazy Sunday morning with sunlight, coffee and someone you love','the first light of day, a gentle fresh start','a slow day, treasuring small happiness','morning light by the window and a warm cup of tea','waking up grateful to a brand new day']},
+  focus:{zh:['雨聲、書頁與專注的深夜','放空的下午，讓思緒慢慢流動','一個人安靜工作的午後時光','咖啡廳角落，世界安靜下來','讀書到深夜，腦海一片清澈'],
+    en:['rain, pages and a focused late night','a blank afternoon letting thoughts drift','a quiet afternoon working alone','a corner cafe where the world goes still','studying deep into the night, a clear calm mind']},
+  dreamy:{zh:['像夢一樣朦朧的初戀悸動','漂浮在霓虹與星光之間的夜','分不清現實與幻想的溫柔時刻','薄霧般的回憶，輕輕包圍著你','閉上眼，墜入一片柔軟的光'],
+    en:['a first-love flutter, hazy like a dream','a night floating between neon and starlight','a tender moment blurring real and imagined','memories like soft mist wrapping around you','eyes closed, falling into a field of soft light']},
+  sad:{zh:['一句你始終沒勇氣說出口的告白','心碎之後，學會獨自一人','最後一次回頭，然後轉身離開','空了的房間，還留著對方的影子','想念一個再也回不來的人'],
+    en:['a confession you never had the courage to say','learning to be alone after heartbreak','one last look back, then walking away','an empty room still holding their shadow','missing someone who is never coming back']},
+  youth:{zh:['不顧一切追逐夢想的倔強','一群不想長大的朋友與盛夏','對全世界說「我不會停下」','青春的莽撞、心動與不顧後果','離開家鄉，既期待又害怕'],
+    en:['a stubborn chase after a dream against all odds','friends who refuse to grow up and one endless summer','telling the whole world you won\'t stop','reckless youth, heartbeats and no second thoughts','leaving your hometown, hopeful but scared']},
+  sunset:{zh:['夕陽下的海邊，微醺的自由','黃昏公路，吹著風奔向遠方','沙灘派對的尾聲，溫柔又盡興','落日把一切染成金色的那一刻','和喜歡的人看著天色慢慢變暗'],
+    en:['a beach at sunset, a tipsy kind of freedom','a dusk highway, wind in your hair toward somewhere far','the warm wind-down of a beach party','the moment the setting sun turns everything gold','watching the sky darken with someone you like']},
+  romantic:{zh:['溫柔慵懶的午後，與愛人的低語','海邊咖啡館，浪漫得不像話','牽著手散步，無關明天的此刻','燭光、輕音樂與兩個人的世界','對一個剛認識的人悄悄心動'],
+    en:['a tender lazy afternoon, whispers with your love','a beachside cafe, impossibly romantic','a hand-in-hand walk, a now with no tomorrow','candlelight, soft music and a world of just two','quietly falling for someone you just met']},
+  epic:{zh:['逆風而行，最終登上頂峰的英雄','永不放棄的信念，響徹天際','一場改變命運的最後一戰','從谷底站起、燃燒整片天空','為了所愛挺身而出的決心'],
+    en:['a hero rising against the wind to the summit','an unbreakable belief ringing across the sky','one final battle that changes everything','rising from the bottom to set the sky on fire','the resolve to stand up for what you love']},
 };
-function surprise(){const p=SPARK[LANG]||SPARK.zh;
-  $('idea').value=(LANG==='zh')
-    ? `${rpick(p.who)}，在${rpick(p.at)}${rpick(p.what)}，${rpick(p.feel)}`
-    : `${rpick(p.who)} ${rpick(p.what)} at ${rpick(p.at)}, ${rpick(p.feel)}`;
-  updatePreview();}
+function surprise(){const vibe=GVIBE[SEL.genre]||'night';const pool=(VIBES[vibe]||VIBES.night);
+  $('idea').value=rpick(pool[LANG]||pool.zh);updatePreview();}
 function randomize(keepGenre){
   if(!keepGenre) pickGenre(rpick(Object.keys(GENRES)));
   pickVG(rpick(['any','female','male']));
