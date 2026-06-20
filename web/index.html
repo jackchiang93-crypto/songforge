@@ -493,7 +493,22 @@ function dl(c,n,t){const a=document.createElement('a');a.href=URL.createObjectUR
 const IDEAS={en:['a late-night drive in the rain, missing someone you let go','falling for a stranger under city lights','leaving your hometown, hopeful but scared','a slow Sunday morning with someone you love','dancing alone at 2am to forget a bad week','a long-distance love kept alive by late calls','looking back on a summer that changed everything','finding peace after heartbreak','a confession you never had courage to say','chasing a dream against all odds'],
   zh:['深夜雨中開車，思念一個你放手的人','在城市燈火下對陌生人心動','離開家鄉，既期待又害怕','與所愛之人的慵懶週日早晨','凌晨兩點獨自跳舞忘掉糟糕的一週','靠深夜通話維繫的遠距離戀愛','回望一個改變一切的夏天','心碎後找回平靜','一句你始終沒勇氣說出口的告白','不顧一切追逐一個夢']};
 function rpick(a){return a[Math.floor(Math.random()*a.length)];}
-function surprise(){$('idea').value=rpick(IDEAS[LANG]||IDEAS.zh);}
+// combinatorial idea engine — who + situation + at + feeling → thousands of combos
+const SPARK={
+  zh:{who:['一個剛失戀的人','一對遠距離情侶','一個離家的少年','一個夜班司機','一個暗戀同事的人','一個重逢的舊情人','一個獨自旅行的女子','一個想被理解的靈魂','一群不想長大的朋友','一個剛搬到陌生城市的人'],
+    what:['在雨中開車','望著城市夜景','翻著舊照片','傳了又刪的訊息','在便利商店買醉','看著最後一班列車','收拾打包的行李','在頂樓吹風','對著電話沉默','跳著沒人看見的舞'],
+    at:['深夜的高速公路','凌晨四點的房間','下著雨的便利商店','空蕩的地鐵月台','夏末的海邊','霓虹閃爍的街角','搬空的舊公寓','陌生城市的天台'],
+    feel:['既期待又害怕','想念卻說不出口','倔強又自由','溫柔而心碎','釋懷後的平靜','藏不住的悸動','孤獨但不絕望','對未來的微光']},
+  en:{who:['someone fresh out of a breakup','a long-distance couple','a teenager leaving home','a night-shift driver','someone crushing on a coworker','two old flames reunited','a woman travelling alone','a soul that just wants to be understood','friends who refuse to grow up','someone newly moved to a strange city'],
+    what:['driving through the rain','watching the city skyline','flipping through old photos','typing and deleting a text','getting tipsy at a convenience store','watching the last train leave','packing their bags','feeling the wind on a rooftop','going silent on the phone','dancing where no one sees'],
+    at:['a midnight highway','a 4am bedroom','a rainy convenience store','an empty subway platform','a late-summer shore','a neon street corner','an emptied old apartment','a rooftop in a strange city'],
+    feel:['hopeful but scared','missing someone they can\'t say it to','defiant and free','tender and heartbroken','at peace after letting go','a flutter they can\'t hide','lonely but not hopeless','a faint light toward the future']},
+};
+function surprise(){const p=SPARK[LANG]||SPARK.zh;
+  $('idea').value=(LANG==='zh')
+    ? `${rpick(p.who)}，在${rpick(p.at)}${rpick(p.what)}，${rpick(p.feel)}`
+    : `${rpick(p.who)} ${rpick(p.what)} at ${rpick(p.at)}, ${rpick(p.feel)}`;
+  updatePreview();}
 function randomize(keepGenre){
   if(!keepGenre) pickGenre(rpick(Object.keys(GENRES)));
   pickVG(rpick(['any','female','male']));
