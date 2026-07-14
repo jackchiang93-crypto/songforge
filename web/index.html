@@ -475,17 +475,36 @@ async function genOne(){const b=$('genBtn'),orig=b.textContent,T=I18N[LANG];let 
   try{const d=await post(path,body);d._genre=GENRES[SEL.genre].label;d._payload=body;SONGS.unshift(d);saveSongs();render();}
   catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent=orig;}}
 
+// each batch slot gets its own creative angle so songs come out genuinely different
+const ANGLES=[
+  'first-person confession, present tense, urban imagery',
+  'second-person "you" address, nostalgic flashback imagery',
+  'storytelling third-person narrative, cinematic scene-setting',
+  'hopeful uplift twist on the theme, brighter chorus',
+  'darker brooding take, minimal sparse imagery',
+  'playful flirty angle, conversational phrasing',
+  'bittersweet acceptance, nature/weather metaphors',
+  'yearning long-distance angle, phone/city-lights imagery',
+];
 async function genBatch(){const T=I18N[LANG];if(!val('idea')){alert(T.a_idea);return;}
   const n=Math.max(1,Math.min(20,parseInt($('count').value)||5));const b=$('batchBtn');b.disabled=true;
-  const glabel=GENRES[SEL.genre].label;let made=0,fails=0;
+  const glabel=GENRES[SEL.genre].label;let made=0,fails=0;const doneTitles=[];
   // stream one-by-one so songs appear as they finish + show progress
   for(let k=0;k<n;k++){
     b.textContent=T.writingP.replace('{i}',k+1).replace('{n}',n);
-    const body=payload({idea:val('idea')+` (variation ${k+1} of ${n}, distinct from the others)`});
-    try{const d=await post('/api/suno',body);d._genre=glabel;d._payload=body;SONGS.unshift(d);made++;saveSongs();render();}
-    catch(e){fails++;showErr(e.message);}
+    let extra=` — variation ${k+1} of ${n}. Creative angle: ${ANGLES[k%ANGLES.length]}.`;
+    if(doneTitles.length)extra+=` Titles already used in this batch: ${doneTitles.map(t=>'"'+t+'"').join(', ')} — this song MUST have a clearly different title, hook, melody feel and imagery from all of them.`;
+    const body=payload({idea:val('idea')+extra});
+    let ok=false;
+    for(let attempt=0;attempt<2 && !ok;attempt++){
+      try{const d=await post('/api/suno',body);d._genre=glabel;d._payload=body;
+        SONGS.unshift(d);doneTitles.push(d.title);made++;saveSongs();render();ok=true;}
+      catch(e){if(attempt===1){fails++;showErr(`#${k+1}: ${e.message}`);}
+        else b.textContent=T.writingP.replace('{i}',(k+1)+'↻').replace('{n}',n);}
+    }
   }
-  b.disabled=false;b.textContent=T.batch;}
+  b.disabled=false;b.textContent=T.batch;
+  if(fails)showErr(`${made}/${n} ok, ${fails} failed — press ▦ again to top up`);}
 
 async function reworkSong(i){const sid='s'+i,s=SONGS[i];
   try{const d=await post('/api/suno/rework',{title:s.title,style:s.style,lyrics:s.lyrics,section:$(sid+'_sec').value,note:val(sid+'_note'),language:val('lang')});
