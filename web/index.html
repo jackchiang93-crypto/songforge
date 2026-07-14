@@ -319,6 +319,12 @@ const API = location.protocol.startsWith('http') ? '' : 'http://localhost:5001';
 
 const GENRES = {
   midnight_rnb:{label:'Midnight R&B',emo:'🌃',style:'smooth r&b, midnight city vibe, soft breathy vocals, lo-fi drums, warm rhodes piano, deep mellow bass, vinyl crackle, rainy night, 85 bpm, dreamy reverb'},
+  neosoul:{label:'Neo-Soul R&B',emo:'🍷',style:'neo-soul, organic r&b, soulful expressive vocals, live drums with laid-back pocket, warm rhodes, jazzy extended chords, fat analog bass, tasteful guitar licks, DAngelo Erykah Badu era, 78 bpm'},
+  nineties_rnb:{label:'90s R&B',emo:'📼',style:'90s r&b, silky group harmonies, new jack swing groove, punchy drum machine, warm pads, smooth male lead with ad-libs, slow jam, TLC Boyz II Men era, 92 bpm'},
+  krnb:{label:'K-R&B',emo:'🇰🇷',style:'korean r&b, dreamy alternative r&b, airy soft vocals, moody synth pads, sparse trap-tinged drums, lush harmonies, emotional falsetto, DEAN Crush style, 75 bpm'},
+  alt_rnb:{label:'Alt R&B',emo:'🌫️',style:'alternative r&b, dark atmospheric production, hazy detached vocals, sub-heavy 808s, ambient textures, reverb-drenched space, The Weeknd early era, moody experimental, 72 bpm'},
+  funk_rnb:{label:'Funk R&B',emo:'🕺',style:'funky r&b, disco groove, energetic soulful vocals, slap bass, tight horn section, wah guitar, four-on-the-floor bounce, Bruno Mars Silk Sonic vibe, 105 bpm'},
+  gospel_soul:{label:'Gospel Soul',emo:'🙌',style:'gospel-infused soul r&b, powerhouse belting vocals, choir backing harmonies, hammond organ, live band, uplifting build, church warmth, 88 bpm'},
   groove_pop:{label:'Groove Pop',emo:'🪩',style:'groove pop, retro funk, laid-back vocals, punchy bassline, clean electric guitar, vintage synth, head-nodding groove, 95 bpm, polished'},
   rainy_jazz:{label:'Rainy Jazz',emo:'🌧️',style:'jazz lounge, rainy mood, soft jazz vocals, brushed drums, upright bass, mellow saxophone, warm piano, intimate club, 75 bpm'},
   synthwave:{label:'Synthwave',emo:'🌆',style:'chillwave, synthwave, dreamy ethereal vocals, analog synth pads, retro drum machine, neon night drive, 80s nostalgia, 90 bpm, lush reverb'},
@@ -494,7 +500,8 @@ const IDEAS={en:['a late-night drive in the rain, missing someone you let go','f
   zh:['深夜雨中開車，思念一個你放手的人','在城市燈火下對陌生人心動','離開家鄉，既期待又害怕','與所愛之人的慵懶週日早晨','凌晨兩點獨自跳舞忘掉糟糕的一週','靠深夜通話維繫的遠距離戀愛','回望一個改變一切的夏天','心碎後找回平靜','一句你始終沒勇氣說出口的告白','不顧一切追逐一個夢']};
 function rpick(a){return a[Math.floor(Math.random()*a.length)];}
 // each genre maps to a "vibe"; the idea spark pulls from that vibe's pool
-const GVIBE={midnight_rnb:'night',groove_pop:'party',rainy_jazz:'melancholy',synthwave:'night',
+const GVIBE={midnight_rnb:'night',neosoul:'romantic',nineties_rnb:'romantic',krnb:'sad',
+  alt_rnb:'night',funk_rnb:'party',gospel_soul:'epic',groove_pop:'party',rainy_jazz:'melancholy',synthwave:'night',
   acoustic:'morning',lofi:'focus',citypop:'party',dreampop:'dreamy',trap_soul:'night',
   bossa:'romantic',ballad:'sad',indie_rock:'youth',edm_chill:'sunset',epic:'epic'};
 const VIBES={
