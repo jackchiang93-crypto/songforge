@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SONGFORGE · Suno Song Studio</title>
+<title>SONGFORGE · Mureka Music Studio</title>
 <style>
   :root{
     --bg:#070709; --bg2:#0d0d12; --panel:#101017; --panel2:#14141c; --card:#13131b;
@@ -33,6 +33,12 @@
   .langsw{display:flex;gap:2px;background:var(--bg2);border:1px solid var(--line2);border-radius:8px;padding:2px}
   .langbtn{background:transparent;border:none;color:var(--dim);font-family:var(--mono);font-size:12px;padding:5px 12px;border-radius:6px;cursor:pointer}
   .langbtn.active{background:var(--grad);color:#070709;font-weight:700}
+  .workspace-nav{display:flex;gap:8px;margin-top:14px;overflow-x:auto}
+  .workspace-nav button{border:1px solid var(--line2);background:var(--panel2);color:var(--dim);border-radius:9px;padding:9px 16px;cursor:pointer;white-space:nowrap}
+  .workspace-nav button.active{border-color:var(--cyan);color:var(--cyan);background:rgba(47,230,214,.08)}
+  .section-intro{margin:22px 0 14px}.section-intro h1{font-size:26px;line-height:1.25}.section-intro p{color:var(--dim);font-size:13px;margin-top:5px}
+  .primary-actions{display:flex;gap:9px;flex-wrap:wrap}.primary-actions .create{flex:1;min-width:180px}
+  .queue-empty{color:var(--dim);padding:24px;border:1px dashed var(--line2);border-radius:12px}
 
   /* Layout */
   .cols{display:grid;grid-template-columns:1fr 360px;gap:22px;align-items:start;margin-top:22px}
@@ -135,6 +141,13 @@
   .meter b{color:var(--cyan)}.meter.dim{border-color:transparent;color:var(--dim2)}
   .rework{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
   .rework input{flex:1;min-width:160px;font-size:12px;padding:9px 11px}.rework select{width:auto;font-size:12px;padding:9px 11px}
+  .publish{margin-top:16px;padding:14px;border:1px solid var(--line2);border-radius:11px;background:var(--bg2)}
+  .publish h4{font-size:13px;color:var(--cyan);margin-bottom:8px}
+  .publish .grid{margin-top:8px}.publish input,.publish select{font-size:12px;padding:9px 11px}
+  .publish .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .song-review{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:13px}
+  .song-review .btn{padding:9px 12px}
+  .later{margin-top:12px;color:var(--dim);font-size:12px}.later summary{cursor:pointer}
   .err{color:var(--red);background:rgba(255,93,108,.07);border:1px solid rgba(255,93,108,.25);border-radius:10px;padding:13px;font-family:var(--mono);font-size:12px;margin-top:14px}
   code{font-family:var(--mono);color:var(--cyan)}
   .guide{background:var(--bg2);border:1px dashed var(--line2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--dim);margin-top:10px;line-height:1.7}
@@ -145,16 +158,23 @@
 <body>
 <header><div class="wrap"><div class="brand">
   <div class="logo">SONGFORGE</div>
-  <div class="tag" data-i18n="tag">// 給 Suno 用的 AI 作曲工作台</div>
+  <div class="tag" data-i18n="tag">// AI 作詞 × Mureka 音樂製作</div>
   <div class="spacer"></div>
   <div class="langsw">
     <button class="langbtn" data-l="en" onclick="setLang('en')">EN</button>
     <button class="langbtn active" data-l="zh" onclick="setLang('zh')">中文</button>
   </div>
   <span class="status" id="status">connecting…</span>
-</div></div></header>
+</div><nav class="workspace-nav" aria-label="工作區">
+  <button class="active" data-view="create" onclick="showView('create')">① 創作設定</button>
+  <button data-view="library" onclick="showView('library')">② 歌曲庫 <span id="navSongs">0</span></button>
+  <button data-view="queue" onclick="showView('queue')">③ Mureka 待製作 <span id="navQueue">0</span></button>
+</nav></div></header>
 
-<div class="wrap"><div class="cols">
+<div class="wrap"><p id="operationStatus" class="hint" role="status" aria-live="polite"></p><div id="createView">
+  <div class="section-intro"><h1>你的音樂製作工作室</h1><p>建立頻道方向 → 創作與審稿 → 挑選作品 → Mureka 製作。每首作品保留創作設定與版本。</p></div>
+  <div class="step"><label for="channelBrief">頻道創作方向</label><textarea id="channelBrief" placeholder="例：給夜晚通勤者的都會音樂。溫暖、克制、有畫面；避免空泛勵志和重複的雨夜失戀套路。" oninput="localStorage.setItem('sf_channel',this.value)"></textarea><p class="hint">描述聽眾、使用情境、聲音特色與不要出現的套路。批次企劃與寫詞會共同遵循這個方向。</p></div>
+  <div class="cols">
 
   <!-- LEFT: builder -->
   <div>
@@ -168,7 +188,7 @@
       </div>
       <div id="scratchBox">
         <textarea id="idea" data-ph="ph_idea" placeholder="例：深夜雨中開車，思念一個你放手的人"></textarea>
-        <button class="btn ghost" style="margin-top:10px;flex:none" onclick="surprise()" data-i18n="surprise">🎲 給我靈感</button>
+        <button class="btn ghost" id="ideaBtn" style="margin-top:10px;flex:none" onclick="surprise()" data-i18n="surprise">✨ AI 給我靈感</button>
       </div>
       <div id="cowriteBox" style="display:none">
         <label data-i18n="l_seed">把你已寫好的句子貼進來（會原封保留）</label>
@@ -185,6 +205,14 @@
           <div><label data-i18n="l_extra">額外方向（選填）</label><input id="idea2" data-ph="ph_extra" placeholder="延續這個情緒 / 加個轉折"></div>
         </div>
       </div>
+      <label data-i18n="l_lyrlang" style="margin-top:14px">歌詞語言</label>
+      <select id="lang">
+        <option value="english">English</option><option value="mandarin">中文</option>
+        <option value="korean">한국어</option><option value="japanese">日本語</option>
+        <option value="spanish">Spanish</option><option value="french">French</option>
+        <option value="中文+English">中文＋English 混合</option><option value="日本語+English">日本語＋English 混合</option>
+      </select>
+      <p class="hint">混合語言會寫成同一首歌的不同段落，不是把整首逐句翻譯。</p>
     </div>
 
     <!-- STEP 2 -->
@@ -192,8 +220,10 @@
       <div class="step-h"><div class="step-n">2</div><div class="step-t" data-i18n="st2">選曲風</div>
         <div class="step-s" data-i18n="st2s">點一個就好</div></div>
       <div class="chip-grid" id="genres"></div>
+      <label>自訂曲風（選填；可填日式、中式或任何混合風格）</label>
+      <input id="customStyle" placeholder="例：和風 city pop，箏、電鋼琴、夜晚城市感；或國風 R&B、古箏、竹笛">
       <label data-i18n="l_ref" style="margin-top:16px">風格參考（選填）</label>
-      <input id="ref" data-ph="ph_ref" placeholder="走 90 年代 neo-soul / 像 Frank Ocean">
+      <input id="ref" data-ph="ph_ref" placeholder="90 年代 neo-soul / 溫暖類比錄音質感">
     </div>
 
     <!-- STEP 3 -->
@@ -218,8 +248,9 @@
       <div class="chips" id="moods"></div>
       <label data-i18n="l_speed" style="margin-top:14px">速度</label>
       <div class="seg" id="speedSeg">
+        <button class="active" data-sp="auto" onclick="pickSpeed('auto')">沿用曲風</button>
         <button data-sp="slow" onclick="pickSpeed('slow')" data-i18n="sp_slow">🐢 慢</button>
-        <button class="active" data-sp="mid" onclick="pickSpeed('mid')" data-i18n="sp_mid">🚶 中</button>
+        <button data-sp="mid" onclick="pickSpeed('mid')" data-i18n="sp_mid">🚶 中</button>
         <button data-sp="fast" onclick="pickSpeed('fast')" data-i18n="sp_fast">🏃 快</button>
       </div>
       <label data-i18n="l_len" style="margin-top:14px">長度</label>
@@ -235,15 +266,9 @@
       <span data-i18n="pro">專業微調</span> <span class="sub" data-i18n="pro_sub">— 調性 · 精準 BPM · 樂器 · 排除 · 結構 · 怪異度</span></button>
     <div id="adv">
       <div class="step" style="margin-top:14px;margin-bottom:0">
-        <div class="grid g3">
+        <div class="grid g2">
           <div><label data-i18n="l_key">調性 Key</label><input id="key" placeholder="C minor"></div>
           <div><label data-i18n="l_tempo">精準 BPM（覆寫速度）</label><input id="tempo" data-ph="ph_tempo" placeholder="92 bpm"></div>
-          <div><label data-i18n="l_lyrlang">歌詞語言</label>
-            <select id="lang">
-              <option value="english">English</option><option value="mandarin">中文</option>
-              <option value="korean">한국어</option><option value="japanese">日本語</option>
-              <option value="spanish">Spanish</option><option value="french">French</option>
-            </select></div>
         </div>
         <div class="grid g2" style="margin-top:4px">
           <div><label data-i18n="l_instr">指定樂器</label><input id="instruments" data-ph="ph_instr" placeholder="尼龍吉他、電鋼琴、薩克斯、808"></div>
@@ -257,41 +282,70 @@
             <input id="infl" type="range" min="0" max="100" value="50" oninput="sliderOn('infl','inflVal');updatePreview()"></div>
         </div>
         <p class="hint" data-i18n="slider_hint">滑桿：拖曳即覆寫；不動 = 讓 AI 依曲風自動給合適值。</p>
-        <div class="grid g2" style="margin-top:10px">
-          <div><label data-i18n="l_batch">一次生幾首（歌單）</label><input id="count" type="number" min="1" max="20" value="5"></div>
-          <div style="display:flex;gap:20px;align-items:flex-end;padding-bottom:6px">
-            <label class="switch"><input type="checkbox" id="instr" onchange="updatePreview()"> <span data-i18n="sw_instr">純音樂</span></label>
-            <label class="switch"><input type="checkbox" id="explicit"> <span data-i18n="sw_explicit">允許露骨</span></label>
-          </div>
+        <p class="hint">以下為舊版 Suno 偏好欄位，Mureka API 目前不接收；想影響曲風請在「自訂曲風」或指定樂器中描述。</p>
+        <div class="grid g3" style="margin-top:10px">
+          <div><label>Duration（舊版）</label><select id="durationMode" onchange="toggleDuration()"><option value="auto">Auto</option><option value="custom">Custom</option></select></div>
+          <div id="durationCustom" style="display:none"><label>Custom 秒數</label><input id="durationSeconds" type="number" min="30" max="480" value="180"></div>
+          <div><label>Variety（舊版）</label><select id="variety"><option value="low">Low</option><option value="normal" selected>Normal</option><option value="high">High</option></select></div>
+        </div>
+        <div class="grid g2" style="margin-top:8px">
+          <label class="switch"><input type="checkbox" id="maxMode"> Max Mode（舊版）</label>
+          <label class="switch"><input type="checkbox" id="personalize"> Personalize（舊版）</label>
+        </div>
+        <p class="hint">Max Mode / Variety / Personalize 僅保留在舊作品設定，Mureka 送件不會傳送。</p>
+        <div class="grid g3" style="margin-top:8px">
+          <div><label>Audio 參考</label><input id="audioRef" placeholder="參考音訊的文字描述"></div>
+          <div><label>Voice 參考</label><input id="voiceRef" placeholder="參考人聲的文字描述"></div>
+          <div><label>Inspo 參考</label><input id="inspoRef" placeholder="靈感的文字描述"></div>
+        </div>
+        <p class="hint">這三欄只供寫歌時參考，不會上傳音檔或指定 Mureka 的參考歌曲／歌手。</p>
+        <div style="display:flex;gap:20px;align-items:flex-end;padding-bottom:6px;margin-top:10px">
+          <label class="switch"><input type="checkbox" id="instr" onchange="updatePreview()"> <span data-i18n="sw_instr">純音樂</span></label>
+          <label class="switch"><input type="checkbox" id="explicit"> <span data-i18n="sw_explicit">允許露骨</span></label>
         </div>
       </div>
+    </div>
+    <div class="step" id="batchSetup" style="margin-top:18px">
+      <div class="step-h"><div class="step-n">5</div><div class="step-t">批次製作歌單</div><div class="step-s">沿用上面的主題和曲風</div></div>
+      <label data-i18n="l_batch">一次生幾首（歌單）</label><input id="count" type="number" min="1" max="15" value="10">
+      <label>歌單語言（逗號分隔，最多 6 種）</label>
+      <input id="projectLanguages" placeholder="例：中文, 中文+English, 日本語+English" value="中文, 日文, 英文">
+      <p class="hint">「中文+English」代表每首混合雙語；「中文, English」代表歌單包含不同語言的歌曲。</p>
+      <label>參考熱門歌曲的聲音特徵（選填）</label>
+      <textarea id="referenceTraits" placeholder="描述你聽到的節奏、樂器、情緒轉折、段落與人聲；不要貼歌詞或要求重製旋律。網址可作備註，但不會自動聽歌。"></textarea>
+      <p class="hint">先規劃，再逐首創作與獨立審稿。每首一般使用一次創作與一次審稿；過於相似會多試一次。工作在本機服務背景執行，可關閉網頁後回來查看。</p>
+      <button class="btn ghost" id="batchBtn" onclick="genBatch()" data-i18n="batch">▦ 智能生成歌單</button>
     </div>
   </div>
 
   <!-- RIGHT: live preview + create -->
   <div class="rail">
     <div class="preview">
+      <h3>寫歌模型與額度</h3>
+      <label for="provider">選擇寫歌引擎</label>
+      <select id="provider" onchange="updateProviderNote()">
+        <option value="codex">GPT / Codex CLI（ChatGPT 帳號）</option>
+        <option value="claude">Claude CLI（Claude 帳號）</option>
+        <option value="anthropic">Anthropic API key（API 計費）</option>
+      </select>
+      <p class="hint" id="providerNote"></p>
+    </div>
+    <div class="preview">
       <h3 data-i18n="pv">SUNO 預覽</h3>
-      <div class="note" data-i18n="pv_note">這就是會送進 Suno 的內容（AI 還會精修歌詞）</div>
+      <div class="note" data-i18n="pv_note">這是將用於創作的風格草稿；Mureka 送件前仍可修改</div>
       <div class="pf"><div class="k">STYLES</div><div class="v cy" id="pvStyle">—</div></div>
       <div class="pf"><div class="k" data-i18n="pv_excl">EXCLUDE</div><div class="v" id="pvExcl">—</div></div>
       <div class="pf"><div class="pmeters" id="pvMeters"></div></div>
     </div>
     <button class="create" id="genBtn" onclick="genOne()" data-i18n="gen">⚡ 生成這首歌</button>
-    <div class="rail-row">
-      <button class="btn ghost" onclick="randomize(false)" data-i18n="randomize">🎲 全隨機</button>
-      <button class="btn ghost" onclick="randomize(true)" data-i18n="randomize_keep">🎲 鎖曲風隨機</button>
-    </div>
-    <div class="rail-row">
-      <button class="btn ghost" id="batchBtn" onclick="genBatch()" data-i18n="batch">▦ 生成歌單</button>
-    </div>
     <span class="status" id="count_out" style="text-align:center">0 tracks</span>
   </div>
 
-</div>
+</div></div>
 
   <!-- OUTPUT -->
   <div id="resultsPanel" style="display:none;margin-top:8px">
+    <div class="section-intro"><h1>歌曲庫</h1><p>先看審稿建議與歌詞，再挑選送往 Mureka 的作品。文字評分不代表音樂成品品質。</p></div>
     <div class="step">
       <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px">
         <div class="step-t" data-i18n="t_out">🎧 你的歌曲</div>
@@ -301,17 +355,31 @@
           <button class="btn ghost" style="flex:none" onclick="clearAll()" data-i18n="clear">✕ 清除</button>
         </div>
       </div>
-      <div class="guide" data-i18n="guide">在 Suno 點 <b>Create → Advanced</b>：把 <b>STYLES</b> 貼到 Styles 欄、<b>LYRICS</b> 貼到 Lyrics 欄、<b>EXCLUDE</b> 貼到 Exclude styles，再到 More Options 設 Vocal Gender / Weirdness / Style Influence。</div>
+      <div class="guide" data-i18n="guide">Mureka API 會接收歌詞、風格提示與可選的人聲性別；標題只留在本地作品庫。其他舊版 Suno 控制項不會傳送。</div>
       <div id="results" style="margin-top:6px"></div>
     </div>
   </div>
+  <div id="queuePanel" style="display:none">
+    <div class="section-intro"><h1>Mureka 待製作清單</h1><p>先檢查每首的製作提示詞，再選擇匯出到 Mureka Co 或使用官方 API。成品仍需人工試聽。</p></div>
+    <div class="step"><div class="grid g2"><div><label>生成模型</label><select id="murekaModel"><option value="auto">Auto（官方最新常規模型）</option><option value="mureka-9.5">Mureka 9.5</option><option value="mureka-9">Mureka 9</option><option value="mureka-8">Mureka 8</option><option value="mureka-7.6">Mureka 7.6</option><option value="mureka-o2">Mureka O2</option></select></div><div><label>每首產生版本數</label><select id="murekaVersions"><option value="1">1 版（省額度）</option><option value="2">2 版</option><option value="3">3 版</option></select></div></div>
+      <div class="grid g2" style="margin-top:12px"><div><label>整批固定主唱聲線（文字描述）</label><input id="murekaVoiceProfile" maxlength="300" placeholder="例：溫暖偏低的女中音、輕微氣聲、咬字清晰；每首維持同一聲線"></div><div><label>Vocal ID（選填，僅官方 API）</label><input id="murekaVocalId" maxlength="128" placeholder="已有合法人聲樣本的 Vocal ID 才填"></div></div>
+      <button class="cp" onclick="applyVoiceToQueue()">套用到目前入選歌曲</button><p class="hint">相同文字描述只能提高一致性，不能保證同一個人聲。官方 API 的 Vocal ID 可重用授權樣本；Mureka O2 不支援。這裡不會自動複製任何人的聲音。</p>
+      <p class="hint">Mureka 依實際產生版本計費。送件前請確認歌詞與風格；不會自動上傳 YouTube。</p>
+      <div class="primary-actions"><button class="btn ghost" id="murekaSubmitBtn" onclick="submitMureka()" disabled>♫ 送 Mureka 製作</button><button class="btn ghost" onclick="exportDesktopBatch()">⬇ 批量下載 Mureka Co 提示詞</button><button class="btn ghost" onclick="exportQueue()">⬇ 匯出歌曲資料</button><button class="btn ghost" onclick="showView('library')">返回歌曲庫</button></div>
+      <p class="hint" id="murekaConnection">正在檢查官方 API…</p>
+      <div id="queueList" style="margin-top:15px"></div>
+      <pre id="murekaBriefPreview" class="publish" style="display:none;white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+      <div class="publish"><h4>匯入 Mureka Co 已完成的音樂</h4><p class="hint">選擇作品後，可直接匯入桌面版已生成的「歌名-0.mp3」。若有官方 API 任務 ID，也可填入並連結。兩種方式都不會重新生成或扣生成額度。</p><div class="grid g2"><select id="murekaImportSong"></select><input id="murekaTaskId" inputmode="numeric" placeholder="官方 API 任務 ID（選填）"></div><button class="btn ghost" onclick="importMurekaDesktopAudio()">匯入桌面版 MP3</button> <button class="btn ghost" onclick="importMurekaTask()">連結 API 任務</button></div>
+      <h3 style="margin-top:24px">Mureka 製作進度</h3><div id="murekaTasks" class="hint">尚無送件紀錄。</div>
+    </div>
+  </div>
 
-  <footer data-i18n="foot">SONGFORGE · 本機運作 · 歌詞只送往你選的 LLM backend，不外流</footer>
+  <section class="step" style="margin-top:24px"><div class="step-h"><div class="step-t">生產工作</div><span id="storageStatus" class="hint">連接作品庫…</span><button class="cp" onclick="LIBRARY_READY?saveSongs():initStudio()">重試同步</button></div><div id="jobsList" class="hint">讀取中…</div></section>
+  <footer data-i18n="foot">SONGFORGE · 作品庫保存在本機；生成時文字會送往你選的 AI 服務</footer>
 </div>
 
 <div class="mbar">
   <button class="create" onclick="genOne()" id="genBtnM" data-i18n="gen">⚡ 生成這首歌</button>
-  <button class="btn ghost" style="flex:none" onclick="randomize(true)">🎲</button>
 </div>
 
 <script>
@@ -319,11 +387,11 @@ const API = location.protocol.startsWith('http') ? '' : 'http://localhost:5001';
 
 const GENRES = {
   midnight_rnb:{label:'Midnight R&B',emo:'🌃',style:'smooth r&b, midnight city vibe, soft breathy vocals, lo-fi drums, warm rhodes piano, deep mellow bass, vinyl crackle, rainy night, 85 bpm, dreamy reverb'},
-  neosoul:{label:'Neo-Soul R&B',emo:'🍷',style:'neo-soul, organic r&b, soulful expressive vocals, live drums with laid-back pocket, warm rhodes, jazzy extended chords, fat analog bass, tasteful guitar licks, DAngelo Erykah Badu era, 78 bpm'},
-  nineties_rnb:{label:'90s R&B',emo:'📼',style:'90s r&b, silky group harmonies, new jack swing groove, punchy drum machine, warm pads, smooth male lead with ad-libs, slow jam, TLC Boyz II Men era, 92 bpm'},
-  krnb:{label:'K-R&B',emo:'🇰🇷',style:'korean r&b, dreamy alternative r&b, airy soft vocals, moody synth pads, sparse trap-tinged drums, lush harmonies, emotional falsetto, DEAN Crush style, 75 bpm'},
-  alt_rnb:{label:'Alt R&B',emo:'🌫️',style:'alternative r&b, dark atmospheric production, hazy detached vocals, sub-heavy 808s, ambient textures, reverb-drenched space, The Weeknd early era, moody experimental, 72 bpm'},
-  funk_rnb:{label:'Funk R&B',emo:'🕺',style:'funky r&b, disco groove, energetic soulful vocals, slap bass, tight horn section, wah guitar, four-on-the-floor bounce, Bruno Mars Silk Sonic vibe, 105 bpm'},
+  neosoul:{label:'Neo-Soul R&B',emo:'🍷',style:'neo-soul, organic r&b, expressive soulful vocals, laid-back live drums, warm rhodes, jazzy extended chords, analog bass, 78 bpm'},
+  nineties_rnb:{label:'90s R&B',emo:'📼',style:'90s r&b slow jam, silky group harmonies, new jack swing groove, punchy drum machine, warm pads, expressive lead vocal with ad-libs, 92 bpm'},
+  krnb:{label:'K-R&B',emo:'🇰🇷',style:'korean alternative r&b, airy soft vocals, moody synth pads, sparse trap drums, lush harmonies, emotional falsetto, 75 bpm'},
+  alt_rnb:{label:'Alt R&B',emo:'🌫️',style:'alternative r&b, dark atmospheric production, hazy vocals, sub-heavy 808s, ambient textures, spacious reverb, 72 bpm'},
+  funk_rnb:{label:'Funk R&B',emo:'🕺',style:'funky r&b, disco groove, energetic soulful vocals, slap bass, tight horn section, wah guitar, danceable rhythm, 105 bpm'},
   gospel_soul:{label:'Gospel Soul',emo:'🙌',style:'gospel-infused soul r&b, powerhouse belting vocals, choir backing harmonies, hammond organ, live band, uplifting build, church warmth, 88 bpm'},
   groove_pop:{label:'Groove Pop',emo:'🪩',style:'groove pop, retro funk, laid-back vocals, punchy bassline, clean electric guitar, vintage synth, head-nodding groove, 95 bpm, polished'},
   rainy_jazz:{label:'Rainy Jazz',emo:'🌧️',style:'jazz lounge, rainy mood, soft jazz vocals, brushed drums, upright bass, mellow saxophone, warm piano, intimate club, 75 bpm'},
@@ -362,8 +430,12 @@ const MOODS=[
 const SPEED={slow:'72 bpm slow',mid:'95 bpm mid-tempo',fast:'124 bpm upbeat'};
 const LEN={short:'short ~90s, 3-4 sections',std:'2-3 min, 5 sections',long:'3-4 min, 6-7 sections'};
 
-let LANG='zh', SONGS=[], MODE='scratch';
-let SEL={genre:'midnight_rnb', vg:'any', voice:'', mood:'', speed:'mid', len:'std'};
+let LANG='zh', SONGS=[], MODE='scratch', VIEW='create', BUSY=false;
+let LIBRARY_READY=false, SAVE_CHAIN=Promise.resolve(), SAVED=new Map(), PENDING_SAVES=0, JOBS=[];
+let MUREKA_READY=false, MUREKA_TASKS=[], MUREKA_CHECKED_AT=0, SENDING_MUREKA=false;
+let DIRTY=new Map();try{DIRTY=new Map(JSON.parse(localStorage.getItem('sf_pending')||'[]'));}catch(e){}
+function stashPending(){try{localStorage.setItem('sf_pending',JSON.stringify([...DIRTY]));}catch(e){showErr('無法保存待同步備份，請匯出歌曲 JSON。');}}
+let SEL={genre:'midnight_rnb', vg:'any', voice:'', mood:'', speed:'auto', len:'std'};
 let weirdSet=false, inflSet=false;
 const $=id=>document.getElementById(id);
 const val=id=>($(id)?$(id).value.trim():'');
@@ -381,16 +453,29 @@ function pickMood(m){SEL.mood=(SEL.mood===m?'':m);
   document.querySelectorAll('#moods .chip').forEach(b=>b.classList.toggle('active',b.dataset.md===SEL.mood));updatePreview();}
 function pickSpeed(s){SEL.speed=s;document.querySelectorAll('#speedSeg [data-sp]').forEach(b=>b.classList.toggle('active',b.dataset.sp===s));updatePreview();}
 function pickLen(l){SEL.len=l;document.querySelectorAll('#lenSeg [data-ln]').forEach(b=>b.classList.toggle('active',b.dataset.ln===l));}
+function toggleDuration(){$('durationCustom').style.display=val('durationMode')==='custom'?'block':'none';updatePreview();}
 function fillVoice(d){$('vocal').value=d;updatePreview();}
 function toggleAdv(){$('adv').classList.toggle('open');$('advT').classList.toggle('open');}
 function sliderOn(id,lbl){$(lbl).textContent=$(id).value+'%';if(id==='weird')weirdSet=true;else inflSet=true;}
+function rememberDraft(){try{const fields={};document.querySelectorAll('#createView input[id],#createView textarea[id],#createView select[id]').forEach(e=>fields[e.id]=e.type==='checkbox'?e.checked:e.value);localStorage.setItem('sf_form',JSON.stringify({fields,selection:SEL,mode:MODE,weirdSet,inflSet}));}catch(e){}}
+function restoreDraft(){try{const d=JSON.parse(localStorage.getItem('sf_form')||'null');if(!d)return;
+  for(const [id,value] of Object.entries(d.fields||{})){const e=$(id);if(!e||!e.closest('#createView'))continue;if(e.type==='checkbox')e.checked=!!value;else e.value=value;}
+  if(d.selection){const s=d.selection;if(GENRES[s.genre])pickGenre(s.genre);if(['any','female','male'].includes(s.vg))pickVG(s.vg);if(s.speed in SPEED)pickSpeed(s.speed);if(s.len in LEN)pickLen(s.len);SEL.mood=s.mood||'';renderMoods();}
+  weirdSet=!!d.weirdSet;inflSet=!!d.inflSet;if(weirdSet)$('weirdVal').textContent=$('weird').value+'%';if(inflSet)$('inflVal').textContent=$('infl').value+'%';pickMode(d.mode==='cowrite'?'cowrite':'scratch');toggleDuration();
+}catch(e){}}
 
 // ── live preview (client-side approximation of the Styles string) ──
+function baseStyle(){
+  let segments=(val('customStyle')||GENRES[SEL.genre].style).split(',').map(x=>x.trim());
+  if(val('tempo')||SEL.speed!=='auto') segments=segments.filter(x=>!/^\d{2,3}\s*bpm$/i.test(x));
+  if($('instr').checked||val('vocal')||SEL.vg!=='any') segments=segments.filter(x=>!/(vocal|voice|falsetto|harmonies|choir|ad-libs|singer|singing|tenor|soprano|baritone)/i.test(x));
+  return segments.join(', ');
+}
 function composeStyle(){
-  let parts=[GENRES[SEL.genre].style];
+  let parts=[baseStyle()];
   const m=MOODS.find(x=>x.zh===SEL.mood||x.en===SEL.mood); if(m)parts.push(m.d);
-  const voice=val('vocal'); if(voice)parts.push(voice);
-  if(SEL.vg!=='any')parts.push(SEL.vg+' vocals');
+  const voice=val('vocal'); if(voice&&!$('instr').checked)parts.push(voice);
+  if(SEL.vg!=='any'&&!$('instr').checked)parts.push(SEL.vg+' vocals');
   const tempo=val('tempo')||SPEED[SEL.speed]; if(tempo)parts.push(tempo);
   const instr=val('instruments'); if(instr)parts.push(instr);
   const ref=val('ref'); if(ref)parts.push(ref);
@@ -401,25 +486,30 @@ function updatePreview(){
   $('pvStyle').textContent=composeStyle();
   $('pvExcl').textContent=val('exclude')||'—';
   const w=weirdSet?$('weird').value+'%':'auto', i=inflSet?$('infl').value+'%':'auto';
-  $('pvMeters').innerHTML=`<span>Vocal: <b>${SEL.vg}</b></span><span>Weird: <b>${w}</b></span><span>Influence: <b>${i}</b></span>`;
+  $('pvMeters').innerHTML=`<span>Vocal: <b>${SEL.vg}</b></span><span>Weird: <b>${w}</b></span><span>Influence: <b>${i}</b></span><span>Duration: <b>${val('durationMode')==='custom'?esc(val('durationSeconds'))+'s':'Auto'}</b></span>`;
 }
 
 function payload(extra){
   const moodObj=MOODS.find(x=>x.zh===SEL.mood||x.en===SEL.mood);
   let idea=val('idea'); if(moodObj)idea=(idea?idea+'; ':'')+moodObj.d+' mood';
+  if(val('channelBrief'))idea+='\nChannel identity: '+val('channelBrief');
   return Object.assign({
-    idea, base_style:GENRES[SEL.genre].style,
+    idea, base_style:baseStyle(),
     instrumental:$('instr').checked, explicit:$('explicit').checked, language:val('lang')||'english',
-    tempo:val('tempo')||SPEED[SEL.speed], musical_key:val('key'),
-    vocal:val('vocal'), vocal_gender:SEL.vg,
+    tempo:val('tempo')||SPEED[SEL.speed]||'', musical_key:val('key'),
+    vocal:$('instr').checked?'':val('vocal'), vocal_gender:$('instr').checked?'any':SEL.vg,
     structure:val('structure'), reference:val('ref'), theme_topic:'',
     instruments:val('instruments'), exclude_styles:val('exclude'),
     duration:LEN[SEL.len],
     weirdness: weirdSet?parseInt($('weird').value):null,
     style_influence: inflSet?parseInt($('infl').value):null,
+    duration_mode:val('durationMode'), duration_seconds:val('durationMode')==='custom'?parseInt(val('durationSeconds'))||null:null,
+    max_mode:$('maxMode').checked, variety:val('variety'), personalize:$('personalize').checked,
+    audio_reference:val('audioRef'), voice_reference:val('voiceRef'), inspo_reference:val('inspoRef'),
+    provider:val('provider')||'codex',
   },extra||{});
 }
-function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 function songCard(s,i){
   const sid='s'+i, vg=(s.vocal_gender||'any'), w=(s.weirdness??50), inf=(s.style_influence??50);
@@ -431,9 +521,15 @@ function songCard(s,i){
       <span class="t">${esc(s.title)}</span><span class="g">// ${esc(gl)}</span>
       <div style="margin-left:auto;display:flex;gap:6px">
         <button class="cp" onclick="copyAll(${i},this)">${T.copyall}</button>
-        <button class="cp" onclick="regen(${i},this)">${T.regen}</button>
+        <button class="cp" onclick="regen(${i},this)">${LANG==='zh'?'🔄 另存新版本':'🔄 new version'}</button>
         <button class="cp" onclick="delSong(${i})">✕</button>
       </div></div>
+    <div class="song-review"><button class="btn ghost" onclick="toggleQueue(${i})">${s._queued?'✓ 已加入 Mureka 清單':'＋ 加入 Mureka 清單'}</button>
+      <button class="btn ghost" onclick="reviewSong(${i})">${s._review?'重新審稿':'AI 審稿'}</button>
+      ${s._review?.revision_direction?`<button class="btn ghost" onclick="reviseSong(${i})">依建議改稿並複審</button>`:''}
+      <span class="hint">${s._payload?.language?`歌詞：${esc(s._payload.language)} · `:''}${s._payload?.provider?`模型：${esc(s._payload.provider)}`:''}</span></div>
+    ${s._parent_id?'<p class="hint">改稿版本 · 原作保留在歌曲庫</p>':''}
+    ${s._review?`<div class="publish"><h4>文字審稿 ${s._review.score??'—'} / 100 · ${s._review.status==='reviewed'?'可進入人工選歌':s._review.status==='needs_revision'?'建議修稿':'尚未完成'}</h4><p class="hint">自然度 ${s._review.naturalness??'—'} · 可唱性 ${s._review.singability??'—'} · Hook ${s._review.hook??'—'} · 故事 ${s._review.story??'—'} · 風格 ${s._review.style_fit??'—'}</p><details><summary>查看 ${s._review.issues?.length||0} 項意見與改稿方向</summary>${(s._review.issues||[]).map(x=>`<p>${esc(x)}</p>`).join('')}<p>${esc(s._review.revision_direction||'')}</p></details><p class="hint">文字審稿；音樂成品仍須試聽。按「依建議改稿並複審」會使用兩次模型請求。</p></div>`:'<p class="hint">尚未審稿：可先按 AI 審稿，檢查歌詞與風格。</p>'}
     <div class="fh"><span>STYLES</span><button class="cp" onclick="copy('${sid}_s',this)">copy</button></div><pre id="${sid}_s" class="style">${esc(s.style)}</pre>
     ${s.exclude_styles?`<div class="fh"><span>EXCLUDE</span><button class="cp" onclick="copy('${sid}_x',this)">copy</button></div><pre id="${sid}_x" class="style">${esc(s.exclude_styles)}</pre>`:''}
     <div class="meters"><span class="meter">Vocal: <b>${esc(vg)}</b></span><span class="meter">Weirdness: <b>${w}%</b></span><span class="meter">Style influence: <b>${inf}%</b></span></div>
@@ -443,118 +539,242 @@ function songCard(s,i){
       ${s.camelot?`<span class="dj cam" title="Camelot (harmonic mixing)">🎧 <b>${esc(s.camelot)}</b></span>`:''}
     </div>${s.chords?`<div class="fh"><span>${T.chords}</span><button class="cp" onclick="copy('${sid}_c',this)">copy</button></div><pre id="${sid}_c" class="chords">${esc(s.chords)}</pre>`:''}`:''}
     <div class="fh"><span>LYRICS</span><button class="cp" onclick="copy('${sid}_l',this)">copy</button></div><pre id="${sid}_l">${esc(s.lyrics)}</pre>
+    <div class="publish"><h4>舊版 Suno Advanced 欄位 · Mureka API 不支援這些進階開關</h4>
+      <div class="meters"><span class="meter">Vocal Gender: <b>${esc(s.vocal_gender||'any')}</b></span>
+        <span class="meter">Duration: <b>${s.duration_mode==='custom'&&s.duration_seconds?esc(s.duration_seconds)+'s':'Auto'}</b></span>
+        <span class="meter">Max Mode: <b>${s.max_mode?'On':'Off'}</b></span>
+        <span class="meter">Weirdness: <b>${w}%</b></span>
+        <span class="meter">Style Influence: <b>${inf}%</b></span>
+        <span class="meter">Variety: <b>${esc(s.variety||'normal')}</b></span>
+        <span class="meter">Personalize: <b>${s.personalize?'On':'Off'}</b></span></div>
+      ${(s.audio_reference||s.voice_reference||s.inspo_reference)?`<p class="hint">Suno ＋ 素材：Audio ${esc(s.audio_reference||'—')} · Voice ${esc(s.voice_reference||'—')} · Inspo ${esc(s.inspo_reference||'—')}</p>`:''}
+      <p class="hint">${LANG==='zh'?'Mureka API 只接收 Lyrics、Styles 作為 prompt，以及可選的人聲性別；其他舊設定不會傳送。實際音長與聲音仍需試聽確認。':'Mureka receives lyrics, style prompt and optional vocal gender; legacy controls are not sent. Audition the result.'}</p>
+      ${s.quality_warnings&&s.quality_warnings.length?`<div class="err">${s.quality_warnings.map(esc).join('<br>')}</div>`:''}
+    </div>
     <div class="rework"><select id="${sid}_sec"><option>Chorus</option><option>Verse</option><option>Verse 2</option><option>Pre-Chorus</option><option>Bridge</option><option>Intro</option><option>Outro</option></select>
       <input id="${sid}_note" data-ph="ph_rework" placeholder="${T.ph_rework}">
-      <button class="btn ghost" style="flex:none;padding:9px 14px" onclick="reworkSong(${i})">${T.rework}</button></div></div>`;
+      <button class="btn ghost" style="flex:none;padding:9px 14px" onclick="reworkSong(${i})">${T.rework}</button></div>
+    <details class="later"><summary>${LANG==='zh'?'稍後：發布與觀看數':'Later: publishing and views'}</summary><div class="publish"><h4>${LANG==='zh'?'發布進度與成效':'Publishing progress & results'}</h4>
+      <div class="grid g3">
+        <select id="${sid}_stage" onchange="setPublish(${i},'stage',this.value)">
+          ${[['idea','構思 / Idea'],['suno','Suno 完成 / Ready'],['video','影片完成 / Video'],['published','已發布 / Published']].map(([v,l])=>`<option value="${v}" ${s._stage===v?'selected':''}>${l}</option>`).join('')}
+        </select>
+        <select id="${sid}_rating" onchange="setPublish(${i},'rating',this.value)">
+          <option value="">品質評分 / Rating</option>${[1,2,3,4,5].map(n=>`<option value="${n}" ${String(s._rating||'')===String(n)?'selected':''}>${n} / 5</option>`).join('')}
+        </select>
+        <input type="number" min="0" step="1" value="${esc(String(s._views??''))}" placeholder="YouTube 觀看數" onchange="setPublish(${i},'views',this.value)">
+      </div>
+    <div class="grid g2">
+        <input value="${esc(s._suno_url||'')}" placeholder="Suno 歌曲連結" onchange="setPublish(${i},'suno_url',this.value)">
+        <input value="${esc(s._youtube_url||'')}" placeholder="YouTube 影片連結" onchange="setPublish(${i},'youtube_url',this.value)">
+      </div>
+      <input style="margin-top:8px" value="${esc(s._description||'')}" placeholder="這支影片的故事／情境（會放進 YouTube 說明）" onchange="setPublish(${i},'description',this.value)">
+      <div class="actions"><button class="cp" onclick="copyMetadata(${i})">${LANG==='zh'?'📋 複製 YouTube 文案':'📋 Copy YouTube metadata'}</button>
+        <button class="cp" onclick="downloadMetadata(${i})">⬇ metadata.txt</button></div>
+      <p class="hint">${LANG==='zh'?'請在 Suno 聽完並確認授權後才標記完成；上傳前檢查文案與影片。':'Review the audio, rights, video and copy before publishing.'}</p>
+    </div></details></div>`;
 }
-function songText(s){return `### ${s.title}\n\n[STYLES]\n${s.style}\n\n[EXCLUDE]\n${s.exclude_styles||'-'}\n\n[KEY] ${s.musical_key||'-'}  [BPM] ${s.bpm||'-'}  [CAMELOT] ${s.camelot||'-'}\n[CHORDS] ${s.chords||'-'}\n\n[VOCAL] ${s.vocal_gender||'any'}  [WEIRD] ${s.weirdness??50}%  [INFLUENCE] ${s.style_influence??50}%\n\n[LYRICS]\n${s.lyrics}`;}
+function songText(s){return `### ${s.title}\n\n[STYLES]\n${s.style}\n\n[EXCLUDE]\n${s.exclude_styles||'-'}\n\n[KEY] ${s.musical_key||'-'}  [BPM] ${s.bpm||'-'}  [CAMELOT] ${s.camelot||'-'}\n[CHORDS] ${s.chords||'-'}\n\n[VOCAL] ${s.vocal_gender||'any'}  [DURATION] ${s.duration_mode==='custom'&&s.duration_seconds?s.duration_seconds+'s':'Auto'}  [MAX MODE] ${s.max_mode?'On':'Off'}\n[WEIRD] ${s.weirdness??50}%  [INFLUENCE] ${s.style_influence??50}%  [VARIETY] ${s.variety||'normal'}  [PERSONALIZE] ${s.personalize?'On':'Off'}\n[AUDIO] ${s.audio_reference||'-'}  [VOICE] ${s.voice_reference||'-'}  [INSPO] ${s.inspo_reference||'-'}\n\n[LYRICS]\n${s.lyrics}`;}
 function copyAll(i,b){navigator.clipboard.writeText(songText(SONGS[i]));const o=b.textContent;b.textContent='✓';setTimeout(()=>b.textContent=o,1100);}
 function toggleFav(i){SONGS[i]._fav=!SONGS[i]._fav;saveSongs();render();}
-function delSong(i){SONGS.splice(i,1);saveSongs();render();}
+async function delSong(i){if(BUSY)return;const song=SONGS[i];if(!confirm(`確定從作品庫移除「${song.title}」？`))return;setBusy(true);try{await SAVE_CHAIN;await apiDelete(song._id);SONGS=SONGS.filter(s=>s._id!==song._id);saveSongs();render();}catch(e){showErr(e.message);}finally{setBusy(false);}}
+function toggleQueue(i){if(!LIBRARY_READY)return;const s=SONGS[i];if(!s._queued&&s._review?.status!=='reviewed'&&!confirm('這首歌尚未通過文字審稿。你已自行檢查並確定選入嗎？'))return;s._queued=!s._queued;s._approved_at=s._queued?new Date().toISOString():null;saveSongs();render();}
+function exportQueue(){const chosen=SONGS.filter(s=>s._queued);if(!chosen.length){showView('library');showErr('請先在歌曲庫挑選歌曲。');return;}
+  dl(JSON.stringify({schema_version:1,kind:'mureka-production-briefs',audio_generated:false,created_at:new Date().toISOString(),songs:chosen},null,2),'mureka-queue.json','application/json');}
+function applyVoiceToQueue(){const chosen=SONGS.filter(s=>s._queued);if(!chosen.length){showErr('請先選入歌曲。');return;}
+  const voice=val('murekaVoiceProfile'),vocalId=val('murekaVocalId');
+  if(voice.length>300||vocalId&&!/^[A-Za-z0-9_-]{3,128}$/.test(vocalId)){showErr('聲線描述或 Vocal ID 格式不正確。');return;}
+  chosen.forEach(s=>{s._mureka_voice_profile=voice;s._mureka_vocal_id=vocalId;});saveSongs();render();}
+function setMurekaNotes(id,value){const s=SONGS.find(x=>x._id===id);if(!s)return;s._mureka_notes=value.trim();saveSongs();}
+async function getMurekaBrief(id){await SAVE_CHAIN;if(DIRTY.size)throw new Error('請先完成作品庫同步');return apiGet('/api/mureka-production/brief/'+encodeURIComponent(id)+'?model='+encodeURIComponent(val('murekaModel')||'auto'));}
+async function previewMurekaBrief(id){try{const b=await getMurekaBrief(id),box=$('murekaBriefPreview');box.textContent=`${b.title}\n\nAPI 提示詞（${b.api_prompt.length}/1024 字）：\n${b.api_prompt}\n\nMureka Co 可貼上的完整提示詞：\n${b.desktop_prompt}`;box.style.display='block';box.scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){showErr(e.message);}}
+async function copyMurekaBrief(id){try{const b=await getMurekaBrief(id);await navigator.clipboard.writeText(b.desktop_prompt);}catch(e){showErr('複製失敗：'+e.message);}}
+async function exportDesktopBatch(){const chosen=SONGS.filter(s=>s._queued);if(!chosen.length){showErr('請先選入歌曲。');return;}
+  try{const briefs=await Promise.all(chosen.map(s=>getMurekaBrief(s._id)));const content=briefs.map((b,i)=>`===== ${i+1}. ${b.title} =====\n${b.desktop_prompt}`).join('\n\n');dl(content,'mureka-co-batch-prompts.txt','text/plain;charset=utf-8');}catch(e){showErr('批量匯出失敗：'+e.message);}}
+function setPublish(i,key,value){
+  if(key==='views') value=value===''?'':Math.max(0,parseInt(value,10)||0);
+  SONGS[i]['_'+key]=value;saveSongs();
+  const published=SONGS.filter(s=>s._stage==='published').length;
+  const views=SONGS.reduce((n,s)=>n+(Number(s._views)||0),0);
+  $('count_out').textContent=`${SONGS.length} tracks · ${published} published · ${views.toLocaleString()} views`;
+}
+function metadata(s){
+  const genre=s._genre||'Original Music';
+  const title=`${s.title} | ${genre} Original Music`.slice(0,100);
+  const tags=[genre,'original music','Suno music',s.musical_key,s.bpm?`${s.bpm} bpm`:null]
+    .filter(Boolean).map(x=>String(x).trim()).filter((x,i,a)=>a.indexOf(x)===i);
+  const description=`${s.title} — ${genre} original music.\n\n${s._description||'Listen, relax, and tell us your favorite moment in the comments.'}\n\n${s._suno_url?`Suno: ${s._suno_url}\n`:''}${s._youtube_url?`YouTube: ${s._youtube_url}\n`:''}\n#OriginalMusic #${genre.replace(/[^a-zA-Z0-9]/g,'')}`;
+  return `TITLE\n${title}\n\nDESCRIPTION\n${description}\n\nTAGS\n${tags.join(', ')}`;
+}
+async function copyMetadata(i){try{await navigator.clipboard.writeText(metadata(SONGS[i]));}catch(e){showErr(e.message);}}
+function downloadMetadata(i){dl(metadata(SONGS[i]),`song-${i+1}-metadata.txt`,'text/plain');}
 async function regen(i,b){const s=SONGS[i];if(!s._payload){showErr('No saved settings for this song');return;}
+  if(BUSY)return;setBusy(true);
   const o=b.textContent;b.disabled=true;b.textContent='⏳';
-  try{const d=await post('/api/suno',s._payload);d._genre=s._genre;d._payload=s._payload;d._fav=s._fav;SONGS[i]=d;saveSongs();render();}
-  catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent=o;}}
-function render(){$('results').innerHTML=SONGS.map(songCard).join('');
-  $('resultsPanel').style.display=SONGS.length?'block':'none';$('count_out').textContent=SONGS.length+' tracks';}
+  try{const d=await post('/api/suno',s._payload);d._genre=s._genre;d._payload=s._payload;d._stage='idea';d._parent_id=s._id;SONGS.unshift(d);saveSongs();render();}
+  catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent=o;setBusy(false);}}
+function render(){$('results').innerHTML=SONGS.length?SONGS.map(songCard).join(''):'<div class="queue-empty">尚無歌曲。先到「創作設定」生成一首。</div>';
+  $('queueList').innerHTML=SONGS.filter(s=>s._queued).map(s=>`<div class="song"><strong>${esc(s.title)}</strong><p class="hint">${esc(s._genre||'')} · ${esc(s._payload?.language||'')} · 歌詞 ${[...(s.lyrics||'')].length}/5000 字 · 風格 ${[...(s.style||'')].length}/1024 字${s._mureka_voice_profile?' · 已設定固定聲線':''}${s._mureka_vocal_id?' · 已設定 Vocal ID':''}</p><label>這首歌的聲音／編曲修正</label><input maxlength="300" value="${esc(s._mureka_notes||'')}" placeholder="例：副歌旋律更抓耳、主唱貼近耳邊、低頻更清晰" onchange="setMurekaNotes('${esc(s._id)}',this.value)"><div class="actions"><button class="cp" onclick="previewMurekaBrief('${esc(s._id)}')">預覽精準提示詞</button><button class="cp" onclick="copyMurekaBrief('${esc(s._id)}')">複製到 Mureka Co</button></div></div>`).join('')||'<div class="queue-empty">還沒有挑選歌曲。到歌曲庫按「加入 Mureka 清單」。</div>';
+  const importSong=$('murekaImportSong'),selected=importSong.value;
+  importSong.innerHTML=SONGS.map(s=>`<option value="${esc(s._id)}">${esc(s.title)}${s._queued?' ✓':''}</option>`).join('');
+  if(SONGS.some(s=>s._id===selected))importSong.value=selected;
+  else if(SONGS.some(s=>s._queued))importSong.value=SONGS.find(s=>s._queued)._id;
+  renderMurekaTasks();
+  const published=SONGS.filter(s=>s._stage==='published').length;
+  const views=SONGS.reduce((n,s)=>n+(Number(s._views)||0),0);
+  $('count_out').textContent=`${SONGS.length} tracks · ${published} published · ${views.toLocaleString()} views`;
+  $('navSongs').textContent=SONGS.length;$('navQueue').textContent=SONGS.filter(s=>s._queued).length;
+  showView(VIEW,false);}
+function showView(view,scroll=true){VIEW=view;
+  $('createView').style.display=view==='create'?'block':'none';
+  $('resultsPanel').style.display=view==='library'?'block':'none';
+  $('queuePanel').style.display=view==='queue'?'block':'none';
+  document.querySelectorAll('.workspace-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  document.querySelector('.mbar').style.display=view==='create'?'':'none';
+  if(scroll)window.scrollTo({top:0,behavior:'smooth'});
+}
+function setBusy(value){BUSY=value;
+  for(const id of ['genBtn','genBtnM','batchBtn','ideaBtn'])$(id).disabled=value||!LIBRARY_READY;
+  document.querySelectorAll('#results .song-review button,#results .rework button').forEach(b=>b.disabled=value);
+  $('operationStatus').textContent=value?'AI 正在處理，請稍候。完成後會顯示結果。':'';
+}
+function updateProviderNote(){const v=val('provider'),notes={codex:'使用本機已登入的 Codex CLI；會計入該 ChatGPT 帳號的 Codex 使用額度。',claude:'使用本機已登入的 Claude CLI；會計入該 Claude 帳號的使用額度。',anthropic:'使用 ANTHROPIC_API_KEY；按 Anthropic API 用量計費。'};$('providerNote').textContent=notes[v]||'';probe();}
 function copy(id,b){navigator.clipboard.writeText($(id).innerText);const o=b.textContent;b.textContent='✓';setTimeout(()=>b.textContent=o,1100);}
-function showErr(m){$('resultsPanel').style.display='block';
-  $('results').insertAdjacentHTML('afterbegin',`<div class="err">✕ ${esc(m)}</div>`);}
+function showErr(m){const box=document.createElement('div');box.className='err';box.textContent='✕ '+m;
+  if(VIEW==='create')$('createView').prepend(box);else if(VIEW==='queue')$('queuePanel').querySelector('.step').prepend(box);else $('results').prepend(box);}
 async function post(path,body){const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(!r.ok){const e=await r.json().catch(()=>({detail:r.statusText}));throw new Error(e.detail||r.statusText);}return r.json();}
 
 // persistence
-function saveSongs(){try{localStorage.setItem('sf_songs',JSON.stringify(SONGS.slice(0,60)));}catch(e){}}
+function saveSongs(){
+  for(const s of SONGS)if(!s._id)s._id=crypto.randomUUID();
+  try{localStorage.setItem('sf_songs',JSON.stringify(SONGS));}catch(e){showErr('瀏覽器備份空間不足；請匯出 JSON。');}
+  if(!LIBRARY_READY)return;
+  for(const s of SONGS){const data=JSON.stringify(s);if(SAVED.get(s._id)===data)continue;
+    SAVED.set(s._id,data);DIRTY.set(s._id,data);stashPending();PENDING_SAVES++;$('storageStatus').textContent='儲存作品中…';
+    SAVE_CHAIN=SAVE_CHAIN.then(()=>post('/api/studio/songs',JSON.parse(data))).then(()=>{if(DIRTY.get(s._id)===data)DIRTY.delete(s._id);stashPending();}).catch(e=>{SAVED.delete(s._id);showErr('作品庫儲存失敗：'+e.message+'。草稿已保留，請按重試同步。');}).finally(()=>{PENDING_SAVES--;$('storageStatus').textContent=PENDING_SAVES?'儲存作品中…':DIRTY.size?'有草稿待同步':'作品庫已連線';});
+  }
+}
 function loadSongs(){try{const v=localStorage.getItem('sf_songs');if(v)SONGS=JSON.parse(v)||[];}catch(e){SONGS=[];}}
 
-async function genOne(){const b=$('genBtn'),orig=b.textContent,T=I18N[LANG];let path='/api/suno',body=payload();
+async function apiGet(path){const r=await fetch(API+path);if(!r.ok)throw new Error('無法連接作品庫');return r.json();}
+async function apiDelete(id){const r=await fetch(API+'/api/studio/songs/'+encodeURIComponent(id),{method:'DELETE'});if(!r.ok)throw new Error('移除失敗');DIRTY.delete(id);SAVED.delete(id);stashPending();}
+async function initStudio(){setBusy(false);try{
+  for(const [id,data] of [...DIRTY]){await post('/api/studio/songs',JSON.parse(data));DIRTY.delete(id);stashPending();}
+  const remote=await apiGet('/api/studio/songs');
+  const signature=s=>JSON.stringify([s.title,s.style,s.lyrics]);
+  if(SONGS.length&&!localStorage.getItem('sf_legacy_backup'))localStorage.setItem('sf_legacy_backup',JSON.stringify(SONGS));
+  for(const s of SONGS){if(remote.some(x=>x._id===s._id&&s._id||signature(x)===signature(s)))continue;
+    // IDs already migrated are authoritative on the server, including deletions.
+    if(s._id&&localStorage.getItem('sf_migrated'))continue;
+    const saved=await post('/api/studio/songs',s);remote.push(saved);
+  }
+  SONGS=remote;SAVED=new Map(SONGS.map(s=>[s._id,JSON.stringify(s)]));LIBRARY_READY=true;
+  localStorage.setItem('sf_migrated','1');saveSongs();render();setBusy(false);await refreshStudio();
+}catch(e){$('storageStatus').textContent='作品庫未連線；舊草稿仍保留';showErr(e.message+'。請確認本機服務已啟動後重新整理。');}}
+
+let REFRESHING=false;
+async function refreshStudio(){if(!LIBRARY_READY||REFRESHING)return;REFRESHING=true;
+  try{JOBS=await apiGet('/api/studio/jobs');renderJobs();await refreshMureka();
+    if(!BUSY&&!PENDING_SAVES&&!DIRTY.size&&!document.activeElement?.closest('#results input,#results select')){
+      const incoming=await apiGet('/api/studio/songs');
+      if(!PENDING_SAVES&&!DIRTY.size&&!BUSY&&JSON.stringify(incoming)!==JSON.stringify(SONGS)){
+        SONGS=incoming;SAVED=new Map(SONGS.map(s=>[s._id,JSON.stringify(s)]));
+        localStorage.setItem('sf_songs',JSON.stringify(SONGS));render();
+      }
+    }
+    if(!BUSY)$('storageStatus').textContent=PENDING_SAVES?'儲存作品中…':DIRTY.size?'有草稿待同步；請按重試同步':'作品庫已連線 · 本機保存';
+  }catch(e){$('storageStatus').textContent='暫時無法連接；本機服務恢復後會重新同步';}finally{REFRESHING=false;}}
+function renderJobs(){const labels={queued:'排隊中',running:'製作中',cancelling:'停止中',completed:'已完成',partial:'部分完成',failed:'失敗',interrupted:'等待續作',cancelled:'已停止'};
+  $('jobsList').innerHTML=JOBS.length?JOBS.slice(0,12).map(j=>`<div class="publish"><h4>${esc(j.request.direction)} · ${labels[j.status]||esc(j.status)}</h4><p>${esc(j.message)}</p><progress style="width:100%" max="${j.request.count}" value="${j.items.filter(i=>i.status==='done').length}"></progress><p class="hint">${esc(j.request.style)} · ${esc(j.request.languages.join(' / '))} · ${esc(j.request.settings.provider)}</p>${j.error?`<p class="err">${esc(j.error)}</p>`:''}${j.items.filter(i=>i.error).map(i=>`<p class="err">${esc(i.brief.concept)}：${esc(i.error)}</p>`).join('')}<div class="actions">${['queued','running'].includes(j.status)?`<button class="cp" onclick="jobAction('${j.id}','cancel')">目前這首完成後停止</button>`:''}${['partial','failed','interrupted','cancelled'].includes(j.status)?`<button class="cp" onclick="jobAction('${j.id}','retry')">續作未完成項目</button>`:''}<button class="cp" onclick="showView('library')">查看歌曲庫</button></div></div>`).join(''):'還沒有工作。完成創作設定後，按「智能生成歌單」。';}
+async function refreshMureka(){
+  if(Date.now()-MUREKA_CHECKED_AT>30000){const state=await apiGet('/api/mureka-production/status');MUREKA_CHECKED_AT=Date.now();MUREKA_READY=!!state.connected;$('murekaConnection').textContent=state.reason||'官方 API 狀態未知';}
+  MUREKA_TASKS=await apiGet('/api/mureka-production/tasks');renderMurekaTasks();
+}
+function renderMurekaTasks(){
+  $('murekaSubmitBtn').disabled=!MUREKA_READY||SENDING_MUREKA||!SONGS.some(s=>s._queued);
+  $('murekaTasks').innerHTML=MUREKA_TASKS.length?MUREKA_TASKS.slice(0,30).map(t=>`<div class="publish"><strong>${esc(t.title)}</strong> · ${esc(({queued:'等待送件',submitting:'正在送件',polling:'製作中',paused:'已暫停',awaiting_audio:'等待音檔',completed:'可試聽',failed:'製作失敗',uncertain:'須到 Mureka API 平台核對'})[t.status]||t.status)}<p class="hint">${esc(t.message||'')}</p>${(t.result?.audio_urls?.length?t.result.audio_urls:t.local_audio_url?[t.local_audio_url]:[]).map((url,i)=>{const playable=i===0&&t.local_audio_url?t.local_audio_url:url;const download=i===0&&t.local_audio_url?`<a class="cp" href="${esc(t.local_audio_url)}/download" download>⬇ 下載 MP3</a>`:'';return `<div><audio controls preload="none" referrerpolicy="no-referrer" src="${esc(playable)}"></audio><a href="${esc(playable)}" target="_blank" rel="noopener noreferrer">${t.local_audio_url&&i===0?'本機音檔':'音檔'} ${i+1}</a> ${download}</div>`}).join('')}${t.error?`<p class="err">${esc(t.error)}</p>`:''}${['paused','awaiting_audio'].includes(t.status)?`<button class="cp" onclick="resumeMureka('${esc(t.id)}')">繼續查詢</button>`:''}</div>`).join(''):'尚無送件紀錄。';
+}
+async function submitMureka(){if(!MUREKA_READY||SENDING_MUREKA)return;const ids=SONGS.filter(s=>s._queued).map(s=>s._id);if(!ids.length)return;
+  const versions=Number($('murekaVersions').value),model=$('murekaModel').value;
+  if(!confirm(`即將送出 ${ids.length} 首，每首 ${versions} 版，共要求 ${ids.length*versions} 個生成版本。Mureka 可能依版本計費，確定送出？`))return;
+  SENDING_MUREKA=true;renderMurekaTasks();try{await SAVE_CHAIN;if(DIRTY.size)throw new Error('請先完成作品庫同步');await post('/api/mureka-production/submit',{song_ids:ids,model,versions});await refreshMureka();}catch(e){showErr('Mureka 送件失敗：'+e.message);}finally{SENDING_MUREKA=false;renderMurekaTasks();}}
+async function resumeMureka(id){try{await post('/api/mureka-production/tasks/'+id+'/resume',{});await refreshMureka();}catch(e){showErr(e.message);}}
+async function importMurekaTask(){const song_id=$('murekaImportSong').value,task_id=$('murekaTaskId').value.trim();
+  if(!song_id||!/^\d{4,30}$/.test(task_id)){showErr('請選擇歌曲並填入數字任務 ID。');return;}
+  try{await post('/api/mureka-production/import',{song_id,task_id});$('murekaTaskId').value='';await refreshStudio();}
+  catch(e){showErr('匯入失敗：'+e.message);}}
+async function importMurekaDesktopAudio(){const song_id=$('murekaImportSong').value,song=SONGS.find(s=>s._id===song_id);
+  if(!song){showErr('請先選擇作品。');return;}
+  try{await post('/api/mureka-production/import-desktop-audio',{song_id,filename:song.title+'-0.mp3',task_id:$('murekaTaskId').value.trim()||null});$('murekaTaskId').value='';await refreshStudio();}
+  catch(e){showErr('桌面音檔匯入失敗：'+e.message);}}
+async function jobAction(id,action){try{await post('/api/studio/jobs/'+id+'/'+action,{});await refreshStudio();}catch(e){showErr(e.message);}}
+async function reviewSong(i){if(BUSY||!LIBRARY_READY)return;const song=SONGS[i];setBusy(true);$('storageStatus').textContent='AI 編輯正在審稿…';
+  try{await SAVE_CHAIN;const updated=await post('/api/studio/songs/'+song._id+'/review',{});const at=SONGS.findIndex(s=>s._id===song._id);if(at>=0)SONGS[at]=updated;saveSongs();render();}
+  catch(e){showErr('審稿失敗：'+e.message);}finally{setBusy(false);}}
+async function reviseSong(i){if(BUSY||!LIBRARY_READY)return;const song=SONGS[i];setBusy(true);$('storageStatus').textContent='依建議改稿與複審中（兩次模型請求）…';
+  try{await SAVE_CHAIN;if(DIRTY.size)throw new Error('請先完成作品庫同步');const version=await post('/api/studio/songs/'+song._id+'/revise',{});SONGS.unshift(version);saveSongs();render();}
+  catch(e){showErr('改稿失敗：'+e.message);}finally{setBusy(false);}}
+
+async function genOne(){if(BUSY||!LIBRARY_READY)return;const b=$('genBtn'),orig=b.textContent,T=I18N[LANG];let path='/api/suno',body=payload();
   if(MODE==='cowrite'){const seed=val('seed');if(!seed){alert(T.a_seed);return;}path='/api/suno/complete';
     body=payload({seed_lyrics:seed,seed_role:$('seedRole').value,idea:val('idea2')});}
   else if(!val('idea')){alert(T.a_idea);return;}
-  b.disabled=true;b.textContent=T.writing;
-  try{const d=await post(path,body);d._genre=GENRES[SEL.genre].label;d._payload=body;SONGS.unshift(d);saveSongs();render();}
-  catch(e){showErr(e.message);}finally{b.disabled=false;b.textContent=orig;}}
+  setBusy(true);b.textContent=T.writing;
+  try{const d=await post(path,body);d._genre=val('customStyle')||GENRES[SEL.genre].label;d._payload=body;d._stage='idea';SONGS.unshift(d);saveSongs();render();showView('library');}
+  catch(e){showErr(e.message);}finally{b.textContent=orig;setBusy(false);}}
 
-// each batch slot gets its own creative angle so songs come out genuinely different
-const ANGLES=[
-  'first-person confession, present tense, urban imagery',
-  'second-person "you" address, nostalgic flashback imagery',
-  'storytelling third-person narrative, cinematic scene-setting',
-  'hopeful uplift twist on the theme, brighter chorus',
-  'darker brooding take, minimal sparse imagery',
-  'playful flirty angle, conversational phrasing',
-  'bittersweet acceptance, nature/weather metaphors',
-  'yearning long-distance angle, phone/city-lights imagery',
-];
-async function genBatch(){const T=I18N[LANG];if(!val('idea')){alert(T.a_idea);return;}
-  const n=Math.max(1,Math.min(20,parseInt($('count').value)||5));const b=$('batchBtn');b.disabled=true;
-  const glabel=GENRES[SEL.genre].label;let made=0,fails=0;const doneTitles=[];
-  // stream one-by-one so songs appear as they finish + show progress
-  for(let k=0;k<n;k++){
-    b.textContent=T.writingP.replace('{i}',k+1).replace('{n}',n);
-    let extra=` — variation ${k+1} of ${n}. Creative angle: ${ANGLES[k%ANGLES.length]}.`;
-    if(doneTitles.length)extra+=` Titles already used in this batch: ${doneTitles.map(t=>'"'+t+'"').join(', ')} — this song MUST have a clearly different title, hook, melody feel and imagery from all of them.`;
-    const body=payload({idea:val('idea')+extra});
-    let ok=false;
-    for(let attempt=0;attempt<2 && !ok;attempt++){
-      try{const d=await post('/api/suno',body);d._genre=glabel;d._payload=body;
-        SONGS.unshift(d);doneTitles.push(d.title);made++;saveSongs();render();ok=true;}
-      catch(e){if(attempt===1){fails++;showErr(`#${k+1}: ${e.message}`);}
-        else b.textContent=T.writingP.replace('{i}',(k+1)+'↻').replace('{n}',n);}
-    }
-  }
-  b.disabled=false;b.textContent=T.batch;
-  if(fails)showErr(`${made}/${n} ok, ${fails} failed — press ▦ again to top up`);}
+function projectLanguages(){return [...new Set(val('projectLanguages').split(/[,，、;；\n]+/).map(x=>x.trim()).filter(Boolean))].slice(0,6);}
+function normalized(s){return String(s||'').toLocaleLowerCase().replace(/[^\p{L}\p{N}]/gu,'');}
+function chorus(s){return (String(s.lyrics||'').match(/\[Chorus\]([\s\S]*?)(?=\n\[|$)/i)||[])[1]||'';}
+function shingles(s){const t=normalized(s),out=new Set();for(let i=0;i<t.length-3;i++)out.add(t.slice(i,i+4));return out;}
+function tooSimilar(a,b){
+  if(normalized(a.title)===normalized(b.title))return true;
+  const x=shingles(chorus(a)||a.lyrics),y=shingles(chorus(b)||b.lyrics);
+  if(!x.size||!y.size)return false;
+  let common=0;for(const v of x)if(y.has(v))common++;
+  return common/(x.size+y.size-common)>.72;
+}
+async function genBatch(){if(BUSY||!LIBRARY_READY)return;const T=I18N[LANG];if(MODE==='cowrite'){showErr('批次企劃請切換至「從靈感生成」；保留既有歌詞請使用單首創作。');return;}if(!val('idea')){alert(T.a_idea);return;}
+  const n=Math.max(1,Math.min(15,parseInt($('count').value)||10)),langs=projectLanguages();
+  if(!langs.length){alert('請填至少一種歌單語言');return;}
+  const b=$('batchBtn'),original=b.textContent;setBusy(true);b.textContent='⏳ 建立工作…';
+  const style=val('customStyle')||GENRES[SEL.genre].label;
+  try{await SAVE_CHAIN;await post('/api/studio/jobs',{direction:val('idea'),style,languages:langs,count:n,reference_traits:val('referenceTraits'),channel_brief:val('channelBrief'),settings:payload()});await refreshStudio();$('jobsList').scrollIntoView({behavior:'smooth'});}
+  catch(e){showErr(e.message);}finally{setBusy(false);b.textContent=original;}
+}
 
-async function reworkSong(i){const sid='s'+i,s=SONGS[i];
-  try{const d=await post('/api/suno/rework',{title:s.title,style:s.style,lyrics:s.lyrics,section:$(sid+'_sec').value,note:val(sid+'_note'),language:val('lang')});
-    d._genre=s._genre;d._payload=s._payload;d._fav=s._fav;SONGS[i]=d;saveSongs();render();}catch(e){showErr(e.message);}}
-function clearAll(){if(SONGS.some(s=>s._fav)&&!confirm(I18N[LANG].confirm_clear))return;SONGS=[];saveSongs();render();}
+async function reworkSong(i){if(BUSY)return;const sid='s'+i,s=SONGS[i];setBusy(true);
+  try{const d=await post('/api/suno/rework',{title:s.title,style:s.style,lyrics:s.lyrics,section:$(sid+'_sec').value,note:val(sid+'_note'),language:s._payload?.language||val('lang'),provider:s._payload?.provider||val('provider')});
+    const version={...s,title:d.title,style:d.style,lyrics:d.lyrics,_id:crypto.randomUUID(),_parent_id:s._id,_created_at:new Date().toISOString(),_queued:false,_stage:'idea'};
+    delete version._review;delete version._approved_at;delete version._job_id;
+    version.quality_warnings=['改稿版本尚未重新審稿。'];SONGS.unshift(version);saveSongs();render();}catch(e){showErr(e.message);}finally{setBusy(false);}}
+async function clearAll(){if(BUSY||!SONGS.length)return;if(!confirm(`確定移除全部 ${SONGS.length} 首歌？請先匯出 JSON 備份。`))return;setBusy(true);try{await SAVE_CHAIN;for(const s of [...SONGS]){await apiDelete(s._id);SONGS=SONGS.filter(x=>x._id!==s._id);}saveSongs();render();}catch(e){showErr(e.message);}finally{setBusy(false);}}
 function exportTxt(){const t=SONGS.map((s,i)=>(i+1)+'. '+songText(s)).join('\n\n'+'='.repeat(50)+'\n\n');dl(t,'songs.txt','text/plain');}
 function exportJson(){dl(JSON.stringify(SONGS,null,2),'songs.json','application/json');}
 function dl(c,n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();}
 
 // surprise / randomize
-const IDEAS={en:['a late-night drive in the rain, missing someone you let go','falling for a stranger under city lights','leaving your hometown, hopeful but scared','a slow Sunday morning with someone you love','dancing alone at 2am to forget a bad week','a long-distance love kept alive by late calls','looking back on a summer that changed everything','finding peace after heartbreak','a confession you never had courage to say','chasing a dream against all odds'],
-  zh:['深夜雨中開車，思念一個你放手的人','在城市燈火下對陌生人心動','離開家鄉，既期待又害怕','與所愛之人的慵懶週日早晨','凌晨兩點獨自跳舞忘掉糟糕的一週','靠深夜通話維繫的遠距離戀愛','回望一個改變一切的夏天','心碎後找回平靜','一句你始終沒勇氣說出口的告白','不顧一切追逐一個夢']};
 function rpick(a){return a[Math.floor(Math.random()*a.length)];}
-// each genre maps to a "vibe"; the idea spark pulls from that vibe's pool
-const GVIBE={midnight_rnb:'night',neosoul:'romantic',nineties_rnb:'romantic',krnb:'sad',
-  alt_rnb:'night',funk_rnb:'party',gospel_soul:'epic',groove_pop:'party',rainy_jazz:'melancholy',synthwave:'night',
-  acoustic:'morning',lofi:'focus',citypop:'party',dreampop:'dreamy',trap_soul:'night',
-  bossa:'romantic',ballad:'sad',indie_rock:'youth',edm_chill:'sunset',epic:'epic'};
-const VIBES={
-  night:{zh:['深夜雨中開車，思念一個你放手的人','凌晨四點的城市，霓虹下的孤獨與渴望','夜班結束後一個人走過空蕩街道','傳了又刪的深夜訊息，欲言又止','頂樓吹著風，想著回不去的那個人'],
-    en:['a rainy late-night drive, missing someone you let go','4am city, neon-lit loneliness and longing','walking home alone through empty streets after a night shift','a midnight text you keep typing and deleting','rooftop wind, thinking of someone you can\'t go back to']},
-  party:{zh:['週五下班的自由，整座城市都是舞池','和好朋友把煩惱丟在身後的夜晚','陽光下開著車窗，心情輕快到想跳舞','久違的重逢，笑著聊到天亮','把糟糕的一週甩開，盡情搖擺'],
-    en:['Friday-night freedom, the whole city is a dance floor','a night of throwing your worries away with friends','windows down in the sun, too happy to sit still','an overdue reunion, laughing till sunrise','shaking off a rough week and just moving']},
-  melancholy:{zh:['雨打窗台的午後，一個人配著爵士發呆','咖啡涼了，回憶卻還溫熱','下雨天的便利商店，淡淡的孤獨','翻著舊照片，想念一段回不去的時光','深夜小酒館，故事都泡在酒裡'],
-    en:['a rainy afternoon, jazz and quiet daydreaming alone','the coffee\'s gone cold but the memory\'s still warm','a soft loneliness in a rainy convenience store','old photos and missing a time you can\'t return to','a late-night bar where every story soaks in the glass']},
-  morning:{zh:['慵懶的週日早晨，陽光、咖啡和愛的人','清晨的第一道光，溫柔地重新開始','慢下來的一天，珍惜微小的幸福','窗邊的晨光，與一杯熱茶的寧靜','嶄新的一天，心懷感恩地醒來'],
-    en:['a lazy Sunday morning with sunlight, coffee and someone you love','the first light of day, a gentle fresh start','a slow day, treasuring small happiness','morning light by the window and a warm cup of tea','waking up grateful to a brand new day']},
-  focus:{zh:['雨聲、書頁與專注的深夜','放空的下午，讓思緒慢慢流動','一個人安靜工作的午後時光','咖啡廳角落，世界安靜下來','讀書到深夜，腦海一片清澈'],
-    en:['rain, pages and a focused late night','a blank afternoon letting thoughts drift','a quiet afternoon working alone','a corner cafe where the world goes still','studying deep into the night, a clear calm mind']},
-  dreamy:{zh:['像夢一樣朦朧的初戀悸動','漂浮在霓虹與星光之間的夜','分不清現實與幻想的溫柔時刻','薄霧般的回憶，輕輕包圍著你','閉上眼，墜入一片柔軟的光'],
-    en:['a first-love flutter, hazy like a dream','a night floating between neon and starlight','a tender moment blurring real and imagined','memories like soft mist wrapping around you','eyes closed, falling into a field of soft light']},
-  sad:{zh:['一句你始終沒勇氣說出口的告白','心碎之後，學會獨自一人','最後一次回頭，然後轉身離開','空了的房間，還留著對方的影子','想念一個再也回不來的人'],
-    en:['a confession you never had the courage to say','learning to be alone after heartbreak','one last look back, then walking away','an empty room still holding their shadow','missing someone who is never coming back']},
-  youth:{zh:['不顧一切追逐夢想的倔強','一群不想長大的朋友與盛夏','對全世界說「我不會停下」','青春的莽撞、心動與不顧後果','離開家鄉，既期待又害怕'],
-    en:['a stubborn chase after a dream against all odds','friends who refuse to grow up and one endless summer','telling the whole world you won\'t stop','reckless youth, heartbeats and no second thoughts','leaving your hometown, hopeful but scared']},
-  sunset:{zh:['夕陽下的海邊，微醺的自由','黃昏公路，吹著風奔向遠方','沙灘派對的尾聲，溫柔又盡興','落日把一切染成金色的那一刻','和喜歡的人看著天色慢慢變暗'],
-    en:['a beach at sunset, a tipsy kind of freedom','a dusk highway, wind in your hair toward somewhere far','the warm wind-down of a beach party','the moment the setting sun turns everything gold','watching the sky darken with someone you like']},
-  romantic:{zh:['溫柔慵懶的午後，與愛人的低語','海邊咖啡館，浪漫得不像話','牽著手散步，無關明天的此刻','燭光、輕音樂與兩個人的世界','對一個剛認識的人悄悄心動'],
-    en:['a tender lazy afternoon, whispers with your love','a beachside cafe, impossibly romantic','a hand-in-hand walk, a now with no tomorrow','candlelight, soft music and a world of just two','quietly falling for someone you just met']},
-  epic:{zh:['逆風而行，最終登上頂峰的英雄','永不放棄的信念，響徹天際','一場改變命運的最後一戰','從谷底站起、燃燒整片天空','為了所愛挺身而出的決心'],
-    en:['a hero rising against the wind to the summit','an unbreakable belief ringing across the sky','one final battle that changes everything','rising from the bottom to set the sky on fire','the resolve to stand up for what you love']},
-};
-function surprise(){const vibe=GVIBE[SEL.genre]||'night';const pool=(VIBES[vibe]||VIBES.night);
-  $('idea').value=rpick(pool[LANG]||pool.zh);updatePreview();}
+async function surprise(){if(BUSY)return;
+  const b=$('ideaBtn'),old=b.textContent;setBusy(true);b.textContent='⏳ AI 構思中…';
+  try{
+    const recent=SONGS.slice(0,15).map(s=>s._brief?.concept||s.title).join(' | ');
+    const plan=await post('/api/suno/plan',{
+      direction:`Create one fresh song concept, unlike these previous ideas: ${recent||'none'}`,
+      style:val('customStyle')||GENRES[SEL.genre].label,
+      languages:[val('lang')||'english'],count:1,reference_traits:val('referenceTraits'),instrumental:$('instr').checked,provider:val('provider'),
+    });
+    const idea=plan.songs[0];$('idea').value=`${idea.concept}；場景：${idea.scene}；情緒轉折：${idea.emotional_turn}；hook：${idea.hook_idea}`;
+    updatePreview();
+  }catch(e){showErr(`靈感生成失敗：${e.message}`);}finally{setBusy(false);b.textContent=old;}
+}
 function randomize(keepGenre){
   if(!keepGenre) pickGenre(rpick(Object.keys(GENRES)));
   pickVG(rpick(['any','female','male']));
   const v=rpick(VOICES); fillVoice(v.d);
   pickMood(rpick(MOODS).zh);
-  pickSpeed(rpick(['slow','mid','fast']));
+  pickSpeed(rpick(['auto','slow','mid','fast']));
   pickLen(rpick(['short','std','long']));
   // also roll the pro sliders
   const w=Math.floor(Math.random()*101), i=20+Math.floor(Math.random()*71);
@@ -566,13 +786,13 @@ function randomize(keepGenre){
 
 // ── i18n ──
 const I18N={
- en:{tag:'// AI songwriting workbench for Suno',
+  en:{tag:'// AI songwriting × Mureka music production',
   st1:'What song do you want?',st1s:'one sentence is enough',m_scratch:'✶ From an idea',m_cowrite:'✎ I have lyrics',
-  ph_idea:'e.g. a late-night drive in the rain, missing someone you let go',surprise:'🎲 Give me an idea',
+  ph_idea:'e.g. a late-night drive in the rain, missing someone you let go',surprise:'✨ AI idea',
   l_seed:'Paste the lines you already wrote (kept verbatim)',ph_seed:'e.g.\nI left the porch light on for a ghost\nCounting headlights like they\'re coming home',
   l_seedrole:'These lines are my…',sr_auto:'Let AI decide',sr_chorus:'Chorus / hook',sr_verse:'Verse',sr_bridge:'Bridge',sr_opening:'Opening lines',
   l_extra:'Extra direction (optional)',ph_extra:'match this mood / add a hopeful turn',
-  st2:'Pick a genre',st2s:'just tap one',l_ref:'Style reference (optional)',ph_ref:'90s neo-soul / Frank Ocean-esque',
+  st2:'Pick a genre',st2s:'just tap one',l_ref:'Style reference (optional)',ph_ref:'90s neo-soul / warm analog recording',
   st3:'Who sings it?',st3s:'gender + timbre',vg_any:'Any',vg_female:'Female',vg_male:'Male',
   l_voicepre:'Timbre (tap to apply)',ph_vocal:'or type: female alto / male tenor / duet',
   st4:'What should it feel like?',st4s:'skip if unsure',l_mood:'Mood',l_speed:'Speed',
@@ -582,19 +802,19 @@ const I18N={
   l_instr:'Instruments',ph_instr:'nylon guitar, rhodes, sax, 808',l_excl:'Exclude styles',ph_excl:'edm, autotune, aggressive drums',
   l_struct:'Song structure',l_weird:'Weirdness',l_infl:'Style influence',
   slider_hint:'Sliders: drag to override, untouched = AI picks per genre.',l_batch:'Songs per batch',sw_instr:'Instrumental',sw_explicit:'Explicit OK',
-  pv:'SUNO PREVIEW',pv_note:'this is what goes into Suno (AI still refines the lyrics)',pv_excl:'EXCLUDE',
-  gen:'⚡ Create this song',gen_cowrite:'✎ Finish my song',batch:'▦ Make a playlist',randomize:'🎲 All random',randomize_keep:'🎲 Keep genre, roll rest',
+  pv:'STYLE PREVIEW',pv_note:'draft style prompt; nothing is sent automatically',pv_excl:'EXCLUDE',
+  gen:'⚡ Create this song',gen_cowrite:'✎ Finish my song',batch:'▦ Smart playlist',randomize:'🎲 All random',randomize_keep:'🎲 Keep genre, roll rest',
   t_out:'🎧 Your songs',clear:'✕ clear',rework:'↻ rework section',chords:'CHORDS · 和弦',fav:'favorite',copyall:'📋 all',regen:'🔄 new version',writingP:'⏳ {i}/{n}…',confirm_clear:'You have favorites. Clear everything?',ph_rework:'how to change it — e.g. more hopeful',
-  guide:'In Suno, open <b>Create → Advanced</b>: paste <b>STYLES</b> into Styles, <b>LYRICS</b> into Lyrics, <b>EXCLUDE</b> into Exclude styles, then set Vocal Gender / Weirdness / Style Influence in More Options.',
-  foot:'SONGFORGE · runs locally · lyrics only go to your chosen LLM backend',
+  guide:'Mureka API receives lyrics, style prompt, and optional vocal gender. Title stays in the local library; legacy Suno controls are not sent.',
+  foot:'SONGFORGE · library saved locally; generation sends text to your selected AI service',
   a_idea:'Type what the song is about first (step 1).',a_seed:'Paste your lyrics first.',writing:'⏳ writing… (~30-60s)',writingN:'⏳ writing {n}…'},
- zh:{tag:'// 給 Suno 用的 AI 作曲工作台',
+  zh:{tag:'// AI 作詞 × Mureka 音樂製作',
   st1:'想做什麼歌？',st1s:'一句話就好',m_scratch:'✶ 從靈感生成',m_cowrite:'✎ 我有歌詞',
-  ph_idea:'例：深夜雨中開車，思念一個你放手的人',surprise:'🎲 給我靈感',
+  ph_idea:'例：深夜雨中開車，思念一個你放手的人',surprise:'✨ AI 給我靈感',
   l_seed:'把你已寫好的句子貼進來（會原封保留）',ph_seed:'例：\n我為一個幽魂留著門廊的燈\n數著車燈彷彿它們正要回家',
   l_seedrole:'這些是我的…',sr_auto:'讓 AI 決定',sr_chorus:'副歌 / hook',sr_verse:'主歌',sr_bridge:'橋段',sr_opening:'開頭句',
   l_extra:'額外方向（選填）',ph_extra:'延續這個情緒 / 加個轉折',
-  st2:'選曲風',st2s:'點一個就好',l_ref:'風格參考（選填）',ph_ref:'90 年代 neo-soul / 像 Frank Ocean',
+  st2:'選曲風',st2s:'點一個就好',l_ref:'風格參考（選填）',ph_ref:'90 年代 neo-soul / 溫暖類比錄音質感',
   st3:'誰來唱？',st3s:'聲音性別 + 音色',vg_any:'不限',vg_female:'女聲',vg_male:'男聲',
   l_voicepre:'音色（點擊套用）',ph_vocal:'或自己打：female alto / male tenor / duet',
   st4:'要什麼感覺？',st4s:'不確定就跳過',l_mood:'情緒',l_speed:'速度',
@@ -604,11 +824,11 @@ const I18N={
   l_instr:'指定樂器',ph_instr:'尼龍吉他、電鋼琴、薩克斯、808',l_excl:'排除風格',ph_excl:'edm、autotune、激烈鼓點',
   l_struct:'歌曲結構',l_weird:'怪異度',l_infl:'風格影響',
   slider_hint:'滑桿：拖曳即覆寫；不動 = 讓 AI 依曲風自動給合適值。',l_batch:'一次生幾首（歌單）',sw_instr:'純音樂',sw_explicit:'允許露骨',
-  pv:'SUNO 預覽',pv_note:'這就是會送進 Suno 的內容（AI 還會精修歌詞）',pv_excl:'排除',
-  gen:'⚡ 生成這首歌',gen_cowrite:'✎ 完成我的歌',batch:'▦ 生成歌單',randomize:'🎲 全隨機',randomize_keep:'🎲 鎖曲風隨機',
+  pv:'風格預覽',pv_note:'這是風格草稿；這裡不會自動送出',pv_excl:'排除',
+  gen:'⚡ 生成這首歌',gen_cowrite:'✎ 完成我的歌',batch:'▦ 智能生成歌單',randomize:'🎲 全隨機',randomize_keep:'🎲 鎖曲風隨機',
   t_out:'🎧 你的歌曲',clear:'✕ 清除',rework:'↻ 重寫此段',chords:'CHORDS · 和弦',fav:'收藏',copyall:'📋 全部',regen:'🔄 換版本',writingP:'⏳ {i}/{n}…',confirm_clear:'有收藏的歌，確定全部清除？',ph_rework:'想怎麼改 — 例：更有希望感',
-  guide:'在 Suno 點 <b>Create → Advanced</b>：把 <b>STYLES</b> 貼到 Styles、<b>LYRICS</b> 貼到 Lyrics、<b>EXCLUDE</b> 貼到 Exclude styles，再到 More Options 設 Vocal Gender / Weirdness / Style Influence。',
-  foot:'SONGFORGE · 本機運作 · 歌詞只送往你選的 LLM backend，不外流',
+  guide:'Mureka API 接收歌詞、風格提示與可選人聲性別；標題保存在本機。舊版 Suno 控制項不會傳送。',
+  foot:'SONGFORGE · 作品庫保存在本機；生成時文字會送往你選的 AI 服務',
   a_idea:'請先在步驟 1 寫下這首歌想講什麼。',a_seed:'請先貼上你的歌詞。',writing:'⏳ 生成中…（約 30-60 秒）',writingN:'⏳ 生成 {n} 首中…'},
 };
 function setLang(l){LANG=l;document.querySelectorAll('.langbtn').forEach(b=>b.classList.toggle('active',b.dataset.l===l));
@@ -629,11 +849,12 @@ function renderMoods(){const c=$('moods');c.innerHTML='';MOODS.forEach(v=>{const
   b.dataset.md=lab;b.innerHTML=`<span class="emo">${v.emo}</span>${lab}`;b.onclick=()=>pickMood(lab);c.appendChild(b);});}
 
 async function probe(){const s=$('status');try{const r=await fetch(API+'/api/health',{signal:AbortSignal.timeout(2500)});
-  if(r.ok){const d=await r.json();s.textContent='● '+d.backend+' · '+d.model;s.className='status on';return;}}catch(e){}
+  if(r.ok){const d=await r.json(),v=val('provider'),ready=!!d.providers?.[v];s.textContent='● '+({codex:'GPT / Codex',claude:'Claude CLI',anthropic:'Anthropic API'}[v]||v)+(ready?' 已安裝':' 未設定');s.className='status '+(ready?'on':'off');return;}}catch(e){}
   s.textContent='● backend offline';s.className='status off';}
 
-(function(){loadSongs();setLang('zh');render();updatePreview();probe();setInterval(probe,15000);
-  ['idea','ref','vocal','instruments','exclude','key','tempo'].forEach(id=>$(id)&&$(id).addEventListener('input',updatePreview));})();
+(function(){loadSongs();$('channelBrief').value=localStorage.getItem('sf_channel')||'';setLang('zh');restoreDraft();render();updatePreview();updateProviderNote();probe();initStudio();setInterval(probe,15000);setInterval(refreshStudio,4000);
+  for(const event of ['input','change','click'])$('createView').addEventListener(event,rememberDraft);
+  ['idea','ref','vocal','instruments','exclude','key','tempo','customStyle'].forEach(id=>$(id)&&$(id).addEventListener('input',updatePreview));})();
 </script>
 </body>
 </html>

@@ -1,27 +1,24 @@
 """
 Suno Song Studio — local backend.
 
-Generates complete, original ENGLISH songs (title + style + lyrics) ready to
-paste into Suno. Two LLM backends, auto-selected at runtime:
-
-  1. Anthropic API   — used if env var ANTHROPIC_API_KEY is set.
-  2. Claude Code CLI — fallback: calls `claude -p` (uses your local login).
-
-No secret is ever stored in this file. Nothing is uploaded anywhere except
-your chosen Anthropic backend.
+Generates multilingual song briefs and lyrics with Codex CLI, Claude CLI or
+Anthropic API. Durable production jobs and independent text reviews live in
+production.py. Suno audio submission is not connected.
 
 Run:
     pip install -r requirements.txt
     uvicorn server:app --port 5001
-Then open web/index.html in a browser.
+Then open http://127.0.0.1:5001/ in a browser.
 """
 from __future__ import annotations
 
 import json
 import os
 import re
+import shutil
 import subprocess
-from typing import Optional
+import tempfile
+from typing import Literal, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,9 +30,9 @@ API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 CLAUDE_TIMEOUT = int(os.environ.get("SUNO_TIMEOUT", "90"))
 
 app = FastAPI(title="Suno Song Studio", version="1.0")
-# CORS: defaults to "*" for easy local use. Set SUNO_CORS_ORIGINS (comma-separated)
-# to lock it down before exposing the server beyond localhost.
-_origins = os.environ.get("SUNO_CORS_ORIGINS", "*").strip()
+# The browser UI is served by this localhost process. Other websites must not
+# be able to spend model or Suno credits through cross-origin requests.
+_origins = os.environ.get("SONGFORGE_CORS_ORIGINS", "http://127.0.0.1:5001,http://localhost:5001").strip()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if _origins == "*" else [o.strip() for o in _origins.split(",") if o.strip()],
@@ -65,6 +62,15 @@ class SunoRequest(BaseModel):
     vocal_gender: str = Field("", description="'male' | 'female' | 'any'")
     weirdness: Optional[int] = Field(None, ge=0, le=100, description="Suno Weirdness % (0-100)")
     style_influence: Optional[int] = Field(None, ge=0, le=100, description="Suno Style Influence % (0-100)")
+    duration_mode: Literal["auto", "custom"] = "auto"
+    duration_seconds: Optional[int] = Field(None, ge=30, le=480)
+    max_mode: bool = False
+    variety: Literal["low", "normal", "high"] = "normal"
+    personalize: bool = False
+    audio_reference: str = ""
+    voice_reference: str = ""
+    inspo_reference: str = ""
+    provider: Literal["auto", "codex", "claude", "anthropic"] = "auto"
 
 
 class SunoResponse(BaseModel):
@@ -80,6 +86,15 @@ class SunoResponse(BaseModel):
     bpm: str = ""              # e.g. "92"
     camelot: str = ""          # harmonic-mixing code, e.g. "5A"
     chords: str = ""           # chord progression per section
+    duration_mode: str = "auto"
+    duration_seconds: Optional[int] = None
+    max_mode: bool = False
+    variety: str = "normal"
+    personalize: bool = False
+    audio_reference: str = ""
+    voice_reference: str = ""
+    inspo_reference: str = ""
+    quality_warnings: list[str] = Field(default_factory=list)
 
 
 class BatchRequest(SunoRequest):
@@ -88,6 +103,84 @@ class BatchRequest(SunoRequest):
 
 class BatchResponse(BaseModel):
     songs: list[SunoResponse]
+
+
+class ProjectRequest(BaseModel):
+    direction: str = Field(..., min_length=3, description="One-sentence creative direction")
+    style: str = Field(..., min_length=2, description="Any genre or cultural style, not limited to presets")
+    languages: list[str] = Field(..., min_length=1, max_length=6)
+    count: int = Field(10, ge=1, le=15)
+    reference_traits: str = Field("", description="Observed musical traits; a URL alone is not audio analysis")
+    instrumental: bool = False
+    provider: Literal["auto", "codex", "claude", "anthropic"] = "auto"
+
+
+class ProjectBrief(BaseModel):
+    concept: str
+    scene: str
+    emotional_turn: str
+    hook_idea: str
+    arrangement: str
+    language: str
+
+
+class ProjectPlan(BaseModel):
+    songs: list[ProjectBrief]
+
+
+PROJECT_SYSTEM = """You are an album creative director. Plan a cohesive but genuinely varied collection of original songs.
+Return pure JSON only: {"songs":[{"concept":"...","scene":"...","emotional_turn":"...","hook_idea":"...","arrangement":"...","language":"..."}]}.
+Each song must have a distinct story premise, concrete scene, emotional change, hook concept and arrangement.
+Avoid formulaic substitutions, recycled metaphors, repeated hook phrases, and references to existing song lyrics, melodies or named artists.
+Do not claim to have listened to a linked song. Reference traits are user-provided observations only.
+The provided language list must be distributed across the collection, and language names must match the supplied list exactly.
+Keep every value concise and specific. Instrumental projects still need unique musical motifs instead of lyric hooks."""
+
+
+def _normalized(text: str) -> str:
+    return re.sub(r"[^\w]+", "", text.casefold())
+
+
+def _validate_plan(data: dict, req: ProjectRequest, languages: list[str]) -> ProjectPlan:
+    try:
+        plan = ProjectPlan.model_validate(data)
+    except Exception as exc:
+        raise ValueError(f"Invalid project plan: {exc}") from exc
+    if len(plan.songs) != req.count:
+        raise ValueError(f"Project plan returned {len(plan.songs)} songs; expected {req.count}")
+    if any(song.language not in languages for song in plan.songs):
+        raise ValueError("Project plan returned a language outside the requested list")
+    if req.count >= len(languages) and set(languages) - {song.language for song in plan.songs}:
+        raise ValueError("Project plan did not cover every requested language")
+    for field in ("concept", "scene", "hook_idea"):
+        values = [_normalized(getattr(song, field)) for song in plan.songs]
+        if any(not value for value in values) or len(set(values)) != len(values):
+            raise ValueError(f"Project plan contains duplicate or empty {field} values")
+    return plan
+
+
+@app.post("/api/suno/plan", response_model=ProjectPlan)
+def plan_project(req: ProjectRequest):
+    languages = [language.strip() for language in req.languages if language.strip()]
+    if not languages:
+        raise HTTPException(400, "At least one language is required")
+    user_msg = (
+        f"Plan exactly {req.count} songs.\nCreative direction: {req.direction}\n"
+        f"Genre / cultural style: {req.style}\nLanguages: {', '.join(languages)}\n"
+        f"Instrumental: {req.instrumental}\n"
+        f"Reference traits supplied by user: {req.reference_traits or 'none'}\n"
+        "Use each language label exactly as provided in a song's language field. "
+        "A label with '+' means a single bilingual song, not two separate songs.\n"
+        "Make every concept, scene and hook distinct. Output one JSON object only."
+    )
+    for attempt in range(2):
+        data = _call_model(user_msg, PROJECT_SYSTEM, req.provider)
+        try:
+            return _validate_plan(data, req, languages)
+        except ValueError as exc:
+            if attempt == 1:
+                raise HTTPException(502, str(exc)) from exc
+            user_msg += f"\nPrevious output was invalid: {exc}. Regenerate the entire plan correctly."
 
 
 # ─── Prompt ──────────────────────────────────────────────────────────────────
@@ -99,15 +192,16 @@ write ONE complete original song AND set the matching Suno parameters.
 
 OUTPUT FIELDS (these map 1:1 to Suno's Advanced create panel):
 1. title  — short evocative song title (1-4 words).
-2. style  — Suno "Styles" line: comma-separated descriptors covering genre,
-   vocal character, KEY INSTRUMENTS, mood, bpm, and production. ONE line, no
-   line breaks. Keep the user's base_style core, blend their new idea, and
-   include any instruments the user named. For instrumental: prefix
+2. style  — Suno "Styles" line: one concise comma-separated line covering
+   primary genre, vocal character, 2-3 KEY INSTRUMENTS, mood, BPM, and production.
+   Prioritize concrete acoustic descriptors over adjectives. Avoid named artists,
+   contradictory directions and repeated tempo tags. For instrumental: prefix
    "[Instrumental]" and add "no vocals".
 3. lyrics — full lyrics using Suno section tags:
    [Intro] [Verse] [Pre-Chorus] [Chorus] [Verse 2] [Chorus] [Bridge] [Outro]
-   One line per line, repeating chorus, singable, emotional, not cliche.
-   Fit the section count to the requested length (~30s per section).
+   One line per line. Give the chorus a memorable hook, repeat its wording exactly,
+   use concrete imagery, natural phrasing and a consistent point of view.
+   Keep lines singable, usually 5-12 words in English; fit sections to duration.
    If instrumental: "[Instrumental]" then only structure tags, no words.
 4. exclude_styles — Suno "Exclude styles": comma-separated things to keep OUT
    (genres/elements that would clash with this song). 3-6 items.
@@ -126,6 +220,7 @@ RULES:
 - Weave in every concrete element and instrument the user named. Match the vibe.
 - Original wording only. Never copy existing song lyrics.
 - bpm, key, genre, and instruments must be mutually consistent.
+- Keep Styles focused. Do not promise a specific melody, exact duration, or audio quality.
 
 OUTPUT: pure JSON ONLY. No markdown fences. No prose.
 
@@ -161,15 +256,36 @@ def _build_user_msg(req: SunoRequest) -> str:
         parts.append(f"Use style_influence = {req.style_influence}")
     if req.structure:
         parts.append(f"Song structure (use exactly these sections in order): {req.structure}")
-    if req.duration:
-        parts.append(f"Target length: {req.duration} (choose section count to fit; "
-                     "~30s per section as a rough guide).")
+    if req.duration_mode == "custom" and req.duration_seconds:
+        parts.append(f"Target length: approximately {req.duration_seconds} seconds; plan an appropriate number of sections and line lengths. Suno may vary the final duration.")
+    elif req.duration:
+        parts.append(f"Target length: {req.duration} (choose a suitable section count; final duration may vary).")
+    if req.variety == "low":
+        parts.append("Favor a direct, cohesive arrangement and a clear repeated hook.")
+    elif req.variety == "high":
+        parts.append("Vary sections and texture while keeping one coherent genre and hook.")
+    if req.audio_reference:
+        parts.append(f"User audio reference note (descriptive only; no audio is attached here): {req.audio_reference}")
+    if req.voice_reference:
+        parts.append(f"User voice reference note (descriptive only): {req.voice_reference}")
+    if req.inspo_reference:
+        parts.append(f"User inspiration note (descriptive only): {req.inspo_reference}")
     lang = (req.language or "english").strip()
-    parts.append(
-        f"IMPORTANT: Write ALL lyrics in {lang.upper()}, regardless of the "
-        f"language used in the description above. The 'style' and 'exclude_styles' "
-        f"fields stay in English."
-    )
+    mixed = [part.strip() for part in re.split(r"[+/／＋]", lang) if part.strip()]
+    if len(mixed) >= 2:
+        parts.append(
+            f"IMPORTANT: This is ONE mixed-language song using {mixed[0]} and {mixed[1]}. "
+            f"Write verses mainly in {mixed[0]} and the repeated chorus mainly in {mixed[1]}; "
+            "use a natural bilingual bridge. Both languages must actually appear in the lyrics. "
+            "Do not translate each line twice or mix languages word-by-word unnaturally. "
+            "Keep the hook identical each time the chorus repeats. Styles and exclude_styles stay in English."
+        )
+    else:
+        parts.append(
+            f"IMPORTANT: Write ALL lyrics in {lang.upper()}, regardless of the "
+            f"language used in the description above. The 'style' and 'exclude_styles' "
+            f"fields stay in English."
+        )
     if req.explicit:
         parts.append("Mature/explicit language is allowed if it fits the song.")
     else:
@@ -201,7 +317,7 @@ def _call_api(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
     client = anthropic.Anthropic(api_key=API_KEY)
     resp = client.messages.create(
         model=MODEL,
-        max_tokens=2000,
+        max_tokens=5000 if system == PROJECT_SYSTEM else 2000,
         system=system,
         messages=[{"role": "user", "content": user_msg}],
     )
@@ -233,9 +349,42 @@ def _call_cli(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
     return _parse_json(out)
 
 
+def _call_codex(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
+    if not shutil.which("codex"):
+        raise HTTPException(503, "codex CLI is not installed")
+    prompt = (
+        "You are a creative writer. Do not use tools, read files, or perform actions. "
+        "Return only the requested JSON.\n\n" + system + "\n\n" + user_msg
+    )
+    with tempfile.TemporaryDirectory(prefix="songforge-codex-") as workdir:
+        try:
+            result = subprocess.run(
+                ["codex", "exec", "--ephemeral", "--ignore-user-config", "--ignore-rules",
+                 "--skip-git-repo-check", "--sandbox", "read-only", "-C", workdir, "-"],
+                input=prompt, capture_output=True, text=True, timeout=CLAUDE_TIMEOUT * 2,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise HTTPException(504, "codex CLI timed out") from exc
+    if result.returncode != 0:
+        raise HTTPException(503, f"codex CLI failed: {(result.stderr or result.stdout)[-300:]}")
+    return _parse_json(result.stdout)
+
+
+def _call_model(user_msg: str, system: str, provider: str) -> dict:
+    if provider == "codex":
+        return _call_codex(user_msg, system)
+    if provider == "anthropic":
+        if not API_KEY:
+            raise HTTPException(503, "ANTHROPIC_API_KEY is not configured")
+        return _call_api(user_msg, system)
+    if provider == "claude":
+        return _call_cli(user_msg, system)
+    return _call_api(user_msg, system) if API_KEY else _call_cli(user_msg, system)
+
+
 def generate_song(req: SunoRequest) -> SunoResponse:
     user_msg = _build_user_msg(req)
-    data = _call_api(user_msg) if API_KEY else _call_cli(user_msg)
+    data = _call_model(user_msg, SYSTEM_PROMPT, req.provider)
     missing = [f for f in ("title", "style", "lyrics") if not data.get(f)]
     if missing:
         raise HTTPException(500, f"LLM response missing fields: {missing}")
@@ -285,17 +434,49 @@ def to_camelot(key: str) -> str:
 
 def _to_response(data: dict, req: SunoRequest) -> SunoResponse:
     """Build SunoResponse, letting explicit user overrides win over the LLM."""
-    vg = (req.vocal_gender or data.get("vocal_gender") or "any").lower()
+    vg = "any" if req.instrumental else (req.vocal_gender or data.get("vocal_gender") or "any").lower()
     if vg not in ("male", "female", "any"):
         vg = "any"
     weird = req.weirdness if req.weirdness is not None else _clamp_pct(data.get("weirdness"), 50)
     infl = req.style_influence if req.style_influence is not None else _clamp_pct(data.get("style_influence"), 50)
     excl = req.exclude_styles.strip() or str(data.get("exclude_styles", "")).strip()
     key = (req.musical_key.strip() or str(data.get("musical_key", "")).strip())
+    lyrics = str(data["lyrics"]).strip()
+    style = str(data["style"]).strip()
+    warnings = []
+    if not req.instrumental:
+        if "[Chorus]" not in lyrics:
+            warnings.append("歌詞缺少 [Chorus]；請檢查歌曲 hook。")
+        if req.language.lower() == "english" and len(lyrics.split()) < 60:
+            warnings.append("歌詞偏短；請確認長度符合預期。")
+    elif re.search(r"(?im)^\s*(?!\[|$)[^\[]+\w", lyrics):
+        warnings.append("純音樂歌詞含文字；請確認 Suno 歌詞欄留空或只用結構標記。")
+    if len(style) > 500:
+        warnings.append("Styles 超過 500 字元；建議精簡，避免方向互相稀釋。")
+    if not req.instrumental and vg in ("male", "female"):
+        opposite = "female" if vg == "male" else "male"
+        if re.search(rf"\b{opposite}\s+(?:lead\s+)?(?:vocals?|voice|singer)\b", style, re.I):
+            warnings.append("Styles 的人聲性別與 Vocal Gender 設定衝突。")
+    if req.tempo:
+        requested_bpm = re.search(r"\b(\d{2,3})\s*bpm\b", req.tempo, re.I)
+        style_bpm = re.search(r"\b(\d{2,3})\s*bpm\b", style, re.I)
+        if requested_bpm and style_bpm and requested_bpm.group(1) != style_bpm.group(1):
+            warnings.append("Styles 的 BPM 與指定速度不同；請手動核對。")
+    if req.duration_mode == "custom" and req.duration_seconds is None:
+        warnings.append("已選 Custom 時長，但未設定秒數。")
+    mixed = [part.strip().lower() for part in re.split(r"[+/／＋]", req.language) if part.strip()]
+    if len(mixed) >= 2 and not req.instrumental:
+        lyric_lines = re.sub(r"(?m)^\s*\[[^\]]+\]\s*$", "", lyrics)
+        if any(part in ("中文", "chinese", "mandarin") for part in mixed) and not re.search(r"[\u4e00-\u9fff]", lyric_lines):
+            warnings.append("混合語言指定中文，但歌詞未見中文字。")
+        if any(part in ("日文", "日本語", "japanese") for part in mixed) and not re.search(r"[\u3040-\u30ff]", lyric_lines):
+            warnings.append("混合語言指定日文，但歌詞未見日文假名；請人工確認。")
+        if any(part in ("英文", "english") for part in mixed) and not re.search(r"\b[a-zA-Z]{2,}\b", lyric_lines):
+            warnings.append("混合語言指定英文，但歌詞未見英文單字。")
     return SunoResponse(
         title=str(data["title"]).strip(),
-        style=str(data["style"]).strip(),
-        lyrics=str(data["lyrics"]).strip(),
+        style=style,
+        lyrics=lyrics,
         exclude_styles=excl,
         vocal_gender=vg,
         weirdness=weird,
@@ -304,6 +485,15 @@ def _to_response(data: dict, req: SunoRequest) -> SunoResponse:
         bpm=str(data.get("bpm", "")).strip(),
         camelot=to_camelot(key),
         chords=str(data.get("chords", "")).strip(),
+        duration_mode=req.duration_mode,
+        duration_seconds=req.duration_seconds if req.duration_mode == "custom" else None,
+        max_mode=req.max_mode,
+        variety=req.variety,
+        personalize=req.personalize,
+        audio_reference=req.audio_reference.strip(),
+        voice_reference=req.voice_reference.strip(),
+        inspo_reference=req.inspo_reference.strip(),
+        quality_warnings=warnings,
     )
 
 
@@ -311,7 +501,9 @@ def _to_response(data: dict, req: SunoRequest) -> SunoResponse:
 @app.get("/api/health")
 def health():
     backend = "anthropic-api" if API_KEY else "claude-cli"
-    return {"ok": True, "backend": backend, "model": MODEL}
+    return {"ok": True, "backend": backend, "model": MODEL,
+            "providers": {"codex": bool(shutil.which("codex")),
+                          "claude": bool(shutil.which("claude")), "anthropic": bool(API_KEY)}}
 
 
 @app.post("/api/suno", response_model=SunoResponse)
@@ -328,6 +520,7 @@ class ReworkRequest(BaseModel):
     section: str = Field(..., description="Which section to rewrite, e.g. 'Chorus', 'Verse 2'")
     note: str = Field("", description="What to change, e.g. 'more hopeful, add a metaphor'")
     language: str = "english"
+    provider: Literal["auto", "codex", "claude", "anthropic"] = "auto"
 
 
 REWORK_SYSTEM = """You are a professional lyric editor. Rewrite ONLY the requested
@@ -347,7 +540,7 @@ def rework(req: ReworkRequest):
         f"Rewrite the [{req.section}] section. Change: {req.note or 'improve it'}.\n"
         f"Language: {req.language}"
     )
-    data = _call_api(msg, REWORK_SYSTEM) if API_KEY else _call_cli(msg, REWORK_SYSTEM)
+    data = _call_model(msg, REWORK_SYSTEM, req.provider)
     if not data.get("lyrics"):
         raise HTTPException(500, "LLM response missing field: lyrics")
     return SunoResponse(
@@ -409,7 +602,7 @@ def complete(req: CompleteRequest):
     if not req.seed_lyrics.strip():
         raise HTTPException(400, "seed_lyrics must not be empty")
     msg = _complete_user_msg(req)
-    data = _call_api(msg, COMPLETE_SYSTEM) if API_KEY else _call_cli(msg, COMPLETE_SYSTEM)
+    data = _call_model(msg, COMPLETE_SYSTEM, req.provider)
     missing = [f for f in ("title", "style", "lyrics") if not data.get(f)]
     if missing:
         raise HTTPException(500, f"LLM response missing fields: {missing}")
@@ -428,10 +621,101 @@ def suno_batch(req: BatchRequest):
             base_style=req.base_style,
             instrumental=req.instrumental,
             language=req.language,
+            tempo=req.tempo, musical_key=req.musical_key, vocal=req.vocal,
+            structure=req.structure, reference=req.reference, theme_topic=req.theme_topic,
+            explicit=req.explicit, duration=req.duration, instruments=req.instruments,
+            exclude_styles=req.exclude_styles, vocal_gender=req.vocal_gender,
+            weirdness=req.weirdness, style_influence=req.style_influence,
+            duration_mode=req.duration_mode, duration_seconds=req.duration_seconds,
+            max_mode=req.max_mode, variety=req.variety, personalize=req.personalize,
+            audio_reference=req.audio_reference, voice_reference=req.voice_reference,
+            inspo_reference=req.inspo_reference,
+            provider=req.provider,
         )
         songs.append(generate_song(sub))
     return BatchResponse(songs=songs)
 
+
+class ProductionRequest(BaseModel):
+    direction: str = Field(min_length=3, max_length=6000)
+    style: str = Field(min_length=2, max_length=2000)
+    languages: list[str] = Field(min_length=1, max_length=6)
+    count: int = Field(default=10, ge=1, le=15)
+    reference_traits: str = Field(default='', max_length=6000)
+    channel_brief: str = Field(default='', max_length=6000)
+    settings: SunoRequest
+
+
+def production_validate(data):
+    from pydantic import ValidationError
+    try:
+        req = ProductionRequest.model_validate(data)
+    except ValidationError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    if not req.direction.strip() or not any(s.strip() for s in req.languages):
+        raise HTTPException(422, '請填主題與語言')
+    return req.model_dump()
+
+
+def production_plan(data):
+    settings = data['settings']
+    request = ProjectRequest(direction=data['direction'] + '\nChannel identity: ' + data['channel_brief'],
+                             style=data['style'], languages=data['languages'], count=data['count'],
+                             reference_traits=data['reference_traits'], instrumental=settings['instrumental'],
+                             provider=settings['provider'])
+    return [song.model_dump() for song in plan_project(request).songs]
+
+
+def production_generate(data, brief, history):
+    from difflib import SequenceMatcher
+    recent = [{'title': s['title'], 'hook': re.search(r'\[Chorus\]([^[]*)', s.get('lyrics', ''))[1][:300]
+               if re.search(r'\[Chorus\]([^[]*)', s.get('lyrics', '')) else ''} for s in history[:30]]
+    settings = dict(data['settings'])
+    settings.update(language=brief['language'], base_style=data['style'] + ', ' + brief['arrangement'])
+    idea = (data['direction'] + '\nChannel identity: ' + data['channel_brief'] +
+            '\nCreative brief: ' + json.dumps(brief, ensure_ascii=False) +
+            '\nAvoid these existing titles, hook phrases and stories: ' + json.dumps(recent, ensure_ascii=False))
+    for attempt in range(2):
+        settings['idea'] = idea + ('\nPrevious draft was too similar. Choose a completely new hook and wording.' if attempt else '')
+        request = SunoRequest.model_validate(settings)
+        song = generate_song(request).model_dump()
+        def hook(s):
+            match = re.search(r'\[Chorus\]([^[]*)', s.get('lyrics', ''))
+            return _normalized(match[1] if match else s.get('lyrics', ''))
+        duplicate = any(_normalized(song['title']) == _normalized(old['title']) or
+                        (not request.instrumental and len(hook(song)) > 12 and
+                         SequenceMatcher(None, hook(song), hook(old)).ratio() > .78) for old in history)
+        if not duplicate:
+            song.update(_payload=settings, _genre=data['style'])
+            return song
+    raise HTTPException(422, '副歌或標題與作品庫過於相近，請調整企劃後重試。')
+
+
+from pathlib import Path
+from production import Studio, router as studio_router
+from mureka_api import MurekaApi
+from mureka_pipeline import MurekaPipeline, router as mureka_pipeline_router
+
+def production_revise(song):
+    request = SunoRequest.model_validate(song.get('_payload') or {'idea': song['title'], 'provider': 'codex'})
+    data = _call_model(json.dumps({'original': {k: song.get(k) for k in ('title', 'style', 'lyrics')},
+                                   'editor_feedback': song['_review'], 'requirements': request.model_dump()}, ensure_ascii=False),
+                       SYSTEM_PROMPT + '\nRevise the supplied song using the editor feedback. Preserve its identity, language and musical requirements. Return the full revised song.', request.provider)
+    if not all(data.get(k) for k in ('title', 'style', 'lyrics')):
+        raise HTTPException(502, '改稿缺少必要欄位，原作保持不變。')
+    version = dict(song)
+    version.update(title=str(data['title']), lyrics=str(data['lyrics']), style=str(data['style']))
+    # Editing lyrics must not silently reset the producer's existing controls.
+    version['quality_warnings'] = _to_response(version, request).quality_warnings
+    return version
+
+studio = Studio(os.environ.get('SONGFORGE_DB', str(Path(__file__).parent / 'data' / 'studio.sqlite3')),
+                production_plan, production_generate, _call_model,
+                lambda song: _to_response(song, SunoRequest.model_validate(song.get('_payload') or {'idea': song['title']})).quality_warnings,
+                production_revise)
+mureka_pipeline = MurekaPipeline(studio, MurekaApi())
+app.include_router(studio_router(studio, production_validate))
+app.include_router(mureka_pipeline_router(mureka_pipeline))
 
 # Serve the web UI at /
 app.mount("/", StaticFiles(directory="web", html=True), name="web")

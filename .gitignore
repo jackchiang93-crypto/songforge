@@ -5,10 +5,13 @@
 *.pem
 secrets/
 config.local.*
+.youtube-token.json
+client_secrets.json
 
 # Generated content
 songs/
 output/
+data/
 *.mp3
 *.wav
 *.mp4

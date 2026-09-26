@@ -1,5 +1,6 @@
 fastapi>=0.110
 uvicorn[standard]>=0.27
 pydantic>=2.0
+certifi>=2024.0
 # Optional — only needed if you use the ANTHROPIC_API_KEY backend:
 anthropic>=0.40
